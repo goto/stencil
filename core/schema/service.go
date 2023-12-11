@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/goto/stencil/pkg/newRelic"
+	"github.com/newrelic/go-agent/v3/newrelic"
 
 	"github.com/google/uuid"
 	"github.com/goto/stencil/core/namespace"
@@ -60,8 +62,12 @@ func (s *Service) CheckCompatibility(ctx context.Context, nsName, schemaName, co
 }
 
 func (s *Service) checkCompatibility(ctx context.Context, nsName, schemaName, format, compatibility string, current ParsedSchema) error {
+	txn := newrelic.FromContext(ctx)
+	newTxn := newRelic.NewTransaction(txn)
+	segment := newTxn.StartGenericSegment("Compatibility checker")
 	prevMeta, prevSchemaData, err := s.GetLatest(ctx, nsName, schemaName)
 	if err != nil {
+		segment.End()
 		if errors.Is(err, store.NoRowsErr) {
 			return nil
 		}
@@ -69,25 +75,33 @@ func (s *Service) checkCompatibility(ctx context.Context, nsName, schemaName, fo
 	}
 	prevSchema, err := s.provider.ParseSchema(prevMeta.Format, prevSchemaData)
 	if err != nil {
+		segment.End()
 		return err
 	}
 	checkerFn := getCompatibilityChecker(compatibility)
+	segment.End()
 	return checkerFn(current, []ParsedSchema{prevSchema})
 }
 
 func (s *Service) Create(ctx context.Context, nsName string, schemaName string, metadata *Metadata, data []byte) (SchemaInfo, error) {
+	txn := newrelic.FromContext(ctx)
+	newTxn := newRelic.NewTransaction(txn)
+	segment := newTxn.StartGenericSegment("Create Schema Info")
 	var scInfo SchemaInfo
 	ns, err := s.namespaceService.Get(ctx, nsName)
 	if err != nil {
+		segment.End()
 		return scInfo, err
 	}
 	format := getNonEmpty(metadata.Format, ns.Format)
 	compatibility := getNonEmpty(metadata.Compatibility, ns.Compatibility)
 	parsedSchema, err := s.provider.ParseSchema(format, data)
 	if err != nil {
+		segment.End()
 		return scInfo, err
 	}
 	if err := s.checkCompatibility(ctx, nsName, schemaName, format, compatibility, parsedSchema); err != nil {
+		segment.End()
 		return scInfo, err
 	}
 	sf := parsedSchema.GetCanonicalValue()
@@ -97,6 +111,7 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 	}
 	versionID := getIDforSchema(nsName, schemaName, sf.ID)
 	version, err := s.repo.Create(ctx, nsName, schemaName, mergedMetadata, versionID, sf)
+	segment.End()
 	return SchemaInfo{
 		Version:  version,
 		ID:       versionID,
@@ -105,12 +120,20 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 }
 
 func (s *Service) withMetadata(ctx context.Context, namespace, schemaName string, getData func() ([]byte, error)) (*Metadata, []byte, error) {
+	txn := newrelic.FromContext(ctx)
+	newTxn := newRelic.NewTransaction(txn)
+	metaDataSegment := newTxn.StartGenericSegment("GetMetaData")
 	var data []byte
 	meta, err := s.repo.GetMetadata(ctx, namespace, schemaName)
 	if err != nil {
+		metaDataSegment.End()
 		return meta, data, err
 	}
+	metaDataSegment.End()
+
+	dataSegment := newTxn.StartGenericSegment("GetData")
 	data, err = getData()
+	dataSegment.End()
 	return meta, data, err
 }
 
