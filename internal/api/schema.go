@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/goto/stencil/pkg/newRelic"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"io"
@@ -74,9 +73,8 @@ func (a *API) HTTPCheckCompatibility(w http.ResponseWriter, req *http.Request, p
 	if err != nil {
 		return err
 	}
-	fmt.Println("Request header", req.Header)
+
 	compatibility := req.Header.Get("X-Compatibility")
-	fmt.Println("compatibility", compatibility)
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]
 	return a.schema.CheckCompatibility(req.Context(), namespaceID, schemaName, compatibility, data)
