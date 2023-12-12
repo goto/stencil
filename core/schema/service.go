@@ -4,20 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/goto/stencil/pkg/newRelic"
-	"github.com/newrelic/go-agent/v3/newrelic"
-
 	"github.com/google/uuid"
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/internal/store"
+	"github.com/goto/stencil/pkg/newRelic"
 )
 
-func NewService(repo Repository, provider Provider, nsSvc NamespaceService, cache Cache) *Service {
+func NewService(repo Repository, provider Provider, nsSvc NamespaceService, cache Cache, nr newRelic.INewRelic) *Service {
 	return &Service{
 		repo:             repo,
 		provider:         provider,
 		cache:            cache,
 		namespaceService: nsSvc,
+		newrelic:         nr,
 	}
 }
 
@@ -30,6 +29,7 @@ type Service struct {
 	repo             Repository
 	cache            Cache
 	namespaceService NamespaceService
+	newrelic         newRelic.INewRelic
 }
 
 func (s *Service) cachedGetSchema(ctx context.Context, nsName, schemaName string, version int32) ([]byte, error) {
@@ -62,9 +62,7 @@ func (s *Service) CheckCompatibility(ctx context.Context, nsName, schemaName, co
 }
 
 func (s *Service) checkCompatibility(ctx context.Context, nsName, schemaName, format, compatibility string, current ParsedSchema) error {
-	txn := newrelic.FromContext(ctx)
-	newTxn := newRelic.NewTransaction(txn)
-	endFunc := newTxn.StartGenericSegment("Compatibility checker")
+	endFunc := s.newrelic.StartGenericSegment(ctx, "Compatibility checker")
 	defer endFunc()
 	prevMeta, prevSchemaData, err := s.GetLatest(ctx, nsName, schemaName)
 	if err != nil {
@@ -82,9 +80,7 @@ func (s *Service) checkCompatibility(ctx context.Context, nsName, schemaName, fo
 }
 
 func (s *Service) Create(ctx context.Context, nsName string, schemaName string, metadata *Metadata, data []byte) (SchemaInfo, error) {
-	txn := newrelic.FromContext(ctx)
-	newTxn := newRelic.NewTransaction(txn)
-	endFunc := newTxn.StartGenericSegment("Create Schema Info")
+	endFunc := s.newrelic.StartGenericSegment(ctx, "Create Schema Info")
 	defer endFunc()
 	var scInfo SchemaInfo
 	ns, err := s.namespaceService.Get(ctx, nsName)
@@ -115,9 +111,7 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 }
 
 func (s *Service) withMetadata(ctx context.Context, namespace, schemaName string, getData func() ([]byte, error)) (*Metadata, []byte, error) {
-	txn := newrelic.FromContext(ctx)
-	newTxn := newRelic.NewTransaction(txn)
-	endFunc := newTxn.StartGenericSegment("GetMetaData")
+	endFunc := s.newrelic.StartGenericSegment(ctx, "GetMetaData")
 	defer endFunc()
 	var data []byte
 	meta, err := s.repo.GetMetadata(ctx, namespace, schemaName)
@@ -125,7 +119,7 @@ func (s *Service) withMetadata(ctx context.Context, namespace, schemaName string
 		return meta, data, err
 	}
 
-	dataSegmentEndFunc := newTxn.StartGenericSegment("GetData")
+	dataSegmentEndFunc := s.newrelic.StartGenericSegment(ctx, "GetData")
 	data, err = getData()
 	dataSegmentEndFunc()
 	return meta, data, err

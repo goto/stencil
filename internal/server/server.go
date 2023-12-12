@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	newRelic2 "github.com/goto/stencil/pkg/newRelic"
 	"log"
 	"net/http"
 	"strings"
@@ -52,7 +53,8 @@ func Start(cfg config.Config) {
 	if err != nil {
 		panic(err)
 	}
-	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache)
+	newRelic := &newRelic2.NewRelic{}
+	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache, newRelic)
 
 	searchRepository := postgres.NewSearchRepository(db)
 	searchService := search.NewService(searchRepository)

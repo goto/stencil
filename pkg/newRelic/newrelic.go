@@ -1,26 +1,27 @@
 package newRelic
 
+//go:generate mockery --name=INewRelic -r --case underscore --with-expecter --structname NewRelic  --filename=newrelic.go --output=./mocks
+
 import (
+	"context"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-func NewTransaction(nr *newrelic.Transaction) *Transaction {
-	return &Transaction{
-		nr: nr,
-	}
+type INewRelic interface {
+	StartGenericSegment(context.Context, string) func()
 }
 
-type Transaction struct {
-	nr *newrelic.Transaction
+type NewRelic struct {
 }
 
-func (txn *Transaction) StartGenericSegment(name string) func() {
+func (nr *NewRelic) StartGenericSegment(ctx context.Context, name string) func() {
+	txn := newrelic.FromContext(ctx)
 	if txn == nil {
 		return func() {}
 	}
 	gs := newrelic.Segment{
 		Name: name,
 	}
-	gs.StartTime = txn.nr.StartSegmentNow()
+	gs.StartTime = txn.StartSegmentNow()
 	return gs.End
 }
