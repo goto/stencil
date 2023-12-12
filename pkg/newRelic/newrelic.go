@@ -4,39 +4,23 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-func NewTransaction(nr *newrelic.Transaction) *NewRelicTransaction {
-	return &NewRelicTransaction{
+func NewTransaction(nr *newrelic.Transaction) *Transaction {
+	return &Transaction{
 		nr: nr,
 	}
 }
 
-type NewRelicTransaction struct {
+type Transaction struct {
 	nr *newrelic.Transaction
 }
 
-func (txn *NewRelicTransaction) StartGenericSegment(name string) EndSegment {
+func (txn *Transaction) StartGenericSegment(name string) func() {
 	if txn == nil {
-		return endSegmentFunc(func() {})
+		return func() {}
 	}
-
 	gs := newrelic.Segment{
 		Name: name,
 	}
-	//fmt.Println("starting segment", name)
 	gs.StartTime = txn.nr.StartSegmentNow()
-
-	return endSegmentFunc(func() {
-		//fmt.Println("ending segment", name)
-		gs.End()
-	})
-}
-
-type EndSegment interface {
-	End()
-}
-
-type endSegmentFunc func()
-
-func (esf endSegmentFunc) End() {
-	esf()
+	return gs.End
 }

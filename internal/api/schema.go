@@ -36,10 +36,10 @@ func (a *API) CreateSchema(ctx context.Context, in *stencilv1beta1.CreateSchemaR
 func (a *API) HTTPUpload(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
 	txn := newrelic.FromContext(req.Context())
 	newTxn := newRelic.NewTransaction(txn)
-	segment := newTxn.StartGenericSegment("Upload schema")
+	endFunc := newTxn.StartGenericSegment("Upload schema")
+	defer endFunc()
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
-		segment.End()
 		return err
 	}
 
@@ -51,14 +51,12 @@ func (a *API) HTTPUpload(w http.ResponseWriter, req *http.Request, pathParams ma
 	schemaName := pathParams["name"]
 	sc, err := a.schema.Create(req.Context(), namespaceID, schemaName, metadata, data)
 	if err != nil {
-		segment.End()
 		return err
 	}
 	respData, _ := json.Marshal(sc)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(respData)
-	segment.End()
 	return nil
 }
 
@@ -100,11 +98,11 @@ func (a *API) GetLatestSchema(ctx context.Context, in *stencilv1beta1.GetLatestS
 func (a *API) HTTPLatestSchema(w http.ResponseWriter, req *http.Request, pathParams map[string]string) (*schema.Metadata, []byte, error) {
 	txn := newrelic.FromContext(req.Context())
 	newTxn := newRelic.NewTransaction(txn)
-	segment := newTxn.StartGenericSegment("GetLatestSchema")
+	endFunc := newTxn.StartGenericSegment("GetLatestSchema")
+	defer endFunc()
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]
 	metadata, data, err := a.schema.GetLatest(req.Context(), namespaceID, schemaName)
-	segment.End()
 	return metadata, data, err
 }
 
@@ -118,18 +116,16 @@ func (a *API) GetSchema(ctx context.Context, in *stencilv1beta1.GetSchemaRequest
 func (a *API) HTTPGetSchema(w http.ResponseWriter, req *http.Request, pathParams map[string]string) (*schema.Metadata, []byte, error) {
 	txn := newrelic.FromContext(req.Context())
 	newTxn := newRelic.NewTransaction(txn)
-	segment := newTxn.StartGenericSegment("GetSchema")
+	endFunc := newTxn.StartGenericSegment("GetSchema")
+	defer endFunc()
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]
 	versionString := pathParams["version"]
 	v, err := strconv.ParseInt(versionString, 10, 32)
 	if err != nil {
-		segment.End()
 		return nil, nil, &runtime.HTTPStatusError{HTTPStatus: http.StatusBadRequest, Err: errors.New("invalid version number")}
 	}
-	metadata, data, err := a.schema.Get(req.Context(), namespaceID, schemaName, int32(v))
-	segment.End()
-	return metadata, data, err
+	return a.schema.Get(req.Context(), namespaceID, schemaName, int32(v))
 }
 
 func (a *API) ListVersions(ctx context.Context, in *stencilv1beta1.ListVersionsRequest) (*stencilv1beta1.ListVersionsResponse, error) {
