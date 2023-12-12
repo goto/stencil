@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/goto/stencil/pkg/newRelic"
-	"github.com/newrelic/go-agent/v3/newrelic"
 	"io"
 	"net/http"
 	"strconv"
@@ -34,9 +32,7 @@ func (a *API) CreateSchema(ctx context.Context, in *stencilv1beta1.CreateSchemaR
 	}, err
 }
 func (a *API) HTTPUpload(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
-	txn := newrelic.FromContext(req.Context())
-	newTxn := newRelic.NewTransaction(txn)
-	endFunc := newTxn.StartGenericSegment("Upload schema")
+	endFunc := a.newrelic.StartGenericSegment(req.Context(), "UploadSchema")
 	defer endFunc()
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -96,9 +92,7 @@ func (a *API) GetLatestSchema(ctx context.Context, in *stencilv1beta1.GetLatestS
 }
 
 func (a *API) HTTPLatestSchema(w http.ResponseWriter, req *http.Request, pathParams map[string]string) (*schema.Metadata, []byte, error) {
-	txn := newrelic.FromContext(req.Context())
-	newTxn := newRelic.NewTransaction(txn)
-	endFunc := newTxn.StartGenericSegment("GetLatestSchema")
+	endFunc := a.newrelic.StartGenericSegment(req.Context(), "GetLatestSchema")
 	defer endFunc()
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]
@@ -114,9 +108,8 @@ func (a *API) GetSchema(ctx context.Context, in *stencilv1beta1.GetSchemaRequest
 }
 
 func (a *API) HTTPGetSchema(w http.ResponseWriter, req *http.Request, pathParams map[string]string) (*schema.Metadata, []byte, error) {
-	txn := newrelic.FromContext(req.Context())
-	newTxn := newRelic.NewTransaction(txn)
-	endFunc := newTxn.StartGenericSegment("GetSchema")
+	endFunc := a.newrelic.StartGenericSegment(req.Context(), "GetSchema")
+	defer endFunc()
 	defer endFunc()
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]

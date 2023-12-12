@@ -200,27 +200,41 @@ func TestGetSchema(t *testing.T) {
 	nsName := "testNamespace"
 	schemaName := "testSchema"
 	t.Run("should return error if get metadata fails", func(t *testing.T) {
-		svc, _, _, repo, _ := getSvc()
+		svc, _, _, repo, newrelic := getSvc()
+		var metadata bool
+		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
 		repo.On("GetMetadata", mock.Anything, nsName, schemaName).Return(&schema.Metadata{}, errors.New("get metadata error"))
 		_, _, err := svc.Get(ctx, nsName, schemaName, int32(1))
 		assert.NotNil(t, err)
+		newrelic.AssertExpectations(t)
 		repo.AssertExpectations(t)
+		assert.True(t, metadata)
 	})
+
 	t.Run("should return error if getting data fails", func(t *testing.T) {
-		svc, _, _, repo, _ := getSvc()
+		svc, _, _, repo, newrelic := getSvc()
 		version := int32(1)
+		var metadata, dataCheck bool
+		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
+		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
 		repo.On("GetMetadata", mock.Anything, nsName, schemaName).Return(&schema.Metadata{}, nil)
 		repo.On("Get", mock.Anything, nsName, schemaName, version).Return(nil, errors.New("get data error"))
 		_, _, err := svc.Get(ctx, nsName, schemaName, version)
 		assert.NotNil(t, err)
 		repo.AssertExpectations(t)
+		newrelic.AssertExpectations(t)
+		assert.True(t, metadata)
+		assert.True(t, dataCheck)
 	})
 
 	t.Run("should return metadata along with schema data", func(t *testing.T) {
-		svc, _, _, repo, _ := getSvc()
+		svc, _, _, repo, newrelic := getSvc()
 		version := int32(1)
 		data := []byte("data")
 		meta := &schema.Metadata{Format: "protobuf"}
+		var metadata, dataCheck bool
+		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
+		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
 		repo.On("GetMetadata", mock.Anything, nsName, schemaName).Return(meta, nil)
 		repo.On("Get", mock.Anything, nsName, schemaName, version).Return(data, nil)
 		actualMeta, actualData, err := svc.Get(ctx, nsName, schemaName, version)
@@ -228,15 +242,22 @@ func TestGetSchema(t *testing.T) {
 		assert.Equal(t, data, actualData)
 		assert.Equal(t, meta, actualMeta)
 		repo.AssertExpectations(t)
+		newrelic.AssertExpectations(t)
+		assert.True(t, metadata)
+		assert.True(t, dataCheck)
 	})
+
 	t.Run("should cache schema data", func(t *testing.T) {
 		nsService := &mocks.NamespaceService{}
 		schemaProvider := &mocks.SchemaProvider{}
 		repo := &mocks.SchemaRepository{}
 		cache := &mocks.SchemaCache{}
-		newRelic := &mocks2.NewRelic{}
-		newRelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newRelic)
+		newrelic := &mocks2.NewRelic{}
+
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic)
+		var metadata, dataCheck bool
+		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
+		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
 		version := int32(1)
 		data := []byte("data")
 		meta := &schema.Metadata{Format: "protobuf"}
@@ -251,15 +272,22 @@ func TestGetSchema(t *testing.T) {
 		assert.Equal(t, meta, actualMeta)
 		repo.AssertExpectations(t)
 		cache.AssertExpectations(t)
+		newrelic.AssertExpectations(t)
+		assert.True(t, metadata)
+		assert.True(t, dataCheck)
 	})
+
 	t.Run("should get data from cache if key exists", func(t *testing.T) {
 		nsService := &mocks.NamespaceService{}
 		schemaProvider := &mocks.SchemaProvider{}
 		repo := &mocks.SchemaRepository{}
 		cache := &mocks.SchemaCache{}
-		newRelic := &mocks2.NewRelic{}
-		newRelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newRelic)
+		newrelic := &mocks2.NewRelic{}
+
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic)
+		var metadata, dataCheck bool
+		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
+		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
 		version := int32(1)
 		data := []byte("data")
 		meta := &schema.Metadata{Format: "protobuf"}
@@ -272,5 +300,8 @@ func TestGetSchema(t *testing.T) {
 		assert.Equal(t, meta, actualMeta)
 		repo.AssertExpectations(t)
 		cache.AssertExpectations(t)
+		newrelic.AssertExpectations(t)
+		assert.True(t, metadata)
+		assert.True(t, dataCheck)
 	})
 }

@@ -59,7 +59,7 @@ func Start(cfg config.Config) {
 	searchRepository := postgres.NewSearchRepository(db)
 	searchService := search.NewService(searchRepository)
 
-	api := api.NewAPI(namespaceService, schemaService, searchService)
+	api := api.NewAPI(namespaceService, schemaService, searchService, newRelic)
 
 	port := fmt.Sprintf(":%s", cfg.Port)
 	nr := getNewRelic(&cfg)
