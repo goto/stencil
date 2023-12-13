@@ -3,7 +3,7 @@ package schema_test
 import (
 	"context"
 	"errors"
-	mocks2 "github.com/goto/stencil/pkg/newRelic/mocks"
+	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
 	"testing"
 
 	"github.com/goto/stencil/core/namespace"

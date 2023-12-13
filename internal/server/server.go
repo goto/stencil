@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	newRelic2 "github.com/goto/stencil/pkg/newRelic"
+	newRelic2 "github.com/goto/stencil/pkg/newrelic"
 	"log"
 	"net/http"
 	"strings"

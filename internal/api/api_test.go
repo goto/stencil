@@ -3,7 +3,7 @@ package api_test
 import (
 	"github.com/goto/stencil/internal/api"
 	"github.com/goto/stencil/internal/api/mocks"
-	mocks2 "github.com/goto/stencil/pkg/newRelic/mocks"
+	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 

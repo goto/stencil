@@ -1,16 +1,19 @@
 package schema
 
 import (
+	"github.com/goto/stencil/core/namespace"
+	"github.com/goto/stencil/pkg/newrelic"
+)
+
+import (
 	"context"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/internal/store"
-	"github.com/goto/stencil/pkg/newRelic"
 )
 
-func NewService(repo Repository, provider Provider, nsSvc NamespaceService, cache Cache, nr newRelic.INewRelic) *Service {
+func NewService(repo Repository, provider Provider, nsSvc NamespaceService, cache Cache, nr newrelic.Service) *Service {
 	return &Service{
 		repo:             repo,
 		provider:         provider,
@@ -29,7 +32,7 @@ type Service struct {
 	repo             Repository
 	cache            Cache
 	namespaceService NamespaceService
-	newrelic         newRelic.INewRelic
+	newrelic         newrelic.Service
 }
 
 func (s *Service) cachedGetSchema(ctx context.Context, nsName, schemaName string, version int32) ([]byte, error) {

@@ -1,16 +1,15 @@
-package newRelic
+package newrelic
 
-//go:generate mockery --name=INewRelic -r --case underscore --with-expecter --structname NewRelic  --filename=newrelic.go --output=./mocks
+//go:generate mockery --name=Service -r --case underscore --with-expecter --structname NewRelic  --filename=newrelic.go --output=./mocks
 
 import (
 	"context"
 	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
-type INewRelic interface {
+type Service interface {
 	StartGenericSegment(context.Context, string) func()
 }
-
 type NewRelic struct {
 }
 
