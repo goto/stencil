@@ -40,11 +40,11 @@ func Start(cfg config.Config) {
 	ctx := context.Background()
 
 	db := postgres.NewStore(cfg.DB.ConnectionString)
-
-	namespaceRepository := postgres.NewNamespaceRepository(db)
+	newRelic := &newRelic2.NewRelic{}
+	namespaceRepository := postgres.NewNamespaceRepository(db, newRelic)
 	namespaceService := namespace.NewService(namespaceRepository)
 
-	schemaRepository := postgres.NewSchemaRepository(db)
+	schemaRepository := postgres.NewSchemaRepository(db, newRelic)
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1000,
 		MaxCost:     cfg.CacheSizeInMB << 20,
@@ -53,10 +53,10 @@ func Start(cfg config.Config) {
 	if err != nil {
 		panic(err)
 	}
-	newRelic := &newRelic2.NewRelic{}
+
 	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache, newRelic)
 
-	searchRepository := postgres.NewSearchRepository(db)
+	searchRepository := postgres.NewSearchRepository(db, newRelic)
 	searchService := search.NewService(searchRepository)
 
 	api := api.NewAPI(namespaceService, schemaService, searchService, newRelic)

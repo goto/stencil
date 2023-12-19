@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	newrelic2 "github.com/goto/stencil/pkg/newrelic"
 
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/goto/stencil/core/search"
@@ -64,22 +65,28 @@ WHERE  (
 `
 
 type SearchRepository struct {
-	db *DB
+	db       *DB
+	newrelic newrelic2.Service
 }
 
-func NewSearchRepository(dbc *DB) *SearchRepository {
+func NewSearchRepository(dbc *DB, nr newrelic2.Service) *SearchRepository {
 	return &SearchRepository{
-		db: dbc,
+		db:       dbc,
+		newrelic: nr,
 	}
 }
 
 func (r *SearchRepository) Search(ctx context.Context, req *search.SearchRequest) ([]*search.SearchHits, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Search All")
+	defer endFunc()
 	var searchHits []*search.SearchHits
 	err := pgxscan.Select(ctx, r.db, &searchHits, searchAllQuery, req.NamespaceID, req.SchemaID, req.VersionID, req.Query)
 	return searchHits, err
 }
 
 func (r *SearchRepository) SearchLatest(ctx context.Context, req *search.SearchRequest) ([]*search.SearchHits, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Search Latest")
+	defer endFunc()
 	var searchHits []*search.SearchHits
 	err := pgxscan.Select(ctx, r.db, &searchHits, searchLatestQuery, req.NamespaceID, req.SchemaID, req.Query)
 	return searchHits, err

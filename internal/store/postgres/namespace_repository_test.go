@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"context"
+	newRelic2 "github.com/goto/stencil/pkg/newrelic"
 	"os"
 	"testing"
 
@@ -21,7 +22,8 @@ func getNamespaceStore(t *testing.T) *postgres.NamespaceRepository {
 	err := postgres.Migrate(connectionString)
 	assert.Nil(t, err)
 	dbc := postgres.NewStore(connectionString)
-	return postgres.NewNamespaceRepository(dbc)
+	newRelic := &newRelic2.NewRelic{}
+	return postgres.NewNamespaceRepository(dbc, newRelic)
 }
 
 func TestNamespace(t *testing.T) {

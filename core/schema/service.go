@@ -83,8 +83,6 @@ func (s *Service) checkCompatibility(ctx context.Context, nsName, schemaName, fo
 }
 
 func (s *Service) Create(ctx context.Context, nsName string, schemaName string, metadata *Metadata, data []byte) (SchemaInfo, error) {
-	endFunc := s.newrelic.StartGenericSegment(ctx, "Create Schema Info")
-	defer endFunc()
 	var scInfo SchemaInfo
 	ns, err := s.namespaceService.Get(ctx, nsName)
 	if err != nil {
@@ -114,17 +112,13 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 }
 
 func (s *Service) withMetadata(ctx context.Context, namespace, schemaName string, getData func() ([]byte, error)) (*Metadata, []byte, error) {
-	endFunc := s.newrelic.StartGenericSegment(ctx, "GetMetaData")
-	defer endFunc()
 	var data []byte
 	meta, err := s.repo.GetMetadata(ctx, namespace, schemaName)
 	if err != nil {
 		return meta, data, err
 	}
 
-	dataSegmentEndFunc := s.newrelic.StartGenericSegment(ctx, "GetData")
 	data, err = getData()
-	dataSegmentEndFunc()
 	return meta, data, err
 }
 

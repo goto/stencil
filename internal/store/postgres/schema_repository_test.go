@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"context"
+	newRelic2 "github.com/goto/stencil/pkg/newrelic"
 	"os"
 	"testing"
 
@@ -21,7 +22,8 @@ func getSchemaStore(t *testing.T) *postgres.SchemaRepository {
 	err := postgres.Migrate(connectionString)
 	assert.Nil(t, err)
 	dbc := postgres.NewStore(connectionString)
-	return postgres.NewSchemaRepository(dbc)
+	newRelic := &newRelic2.NewRelic{}
+	return postgres.NewSchemaRepository(dbc, newRelic)
 }
 
 func TestSchema(t *testing.T) {

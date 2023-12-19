@@ -23,6 +23,8 @@ func schemaToProto(s schema.Schema) *stencilv1beta1.Schema {
 }
 
 func (a *API) CreateSchema(ctx context.Context, in *stencilv1beta1.CreateSchemaRequest) (*stencilv1beta1.CreateSchemaResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "CreateSchema")
+	defer endFunc()
 	metadata := &schema.Metadata{Format: in.GetFormat().String(), Compatibility: in.GetCompatibility().String()}
 	sc, err := a.schema.Create(ctx, in.NamespaceId, in.SchemaId, metadata, in.GetData())
 	return &stencilv1beta1.CreateSchemaResponse{
@@ -57,12 +59,16 @@ func (a *API) HTTPUpload(w http.ResponseWriter, req *http.Request, pathParams ma
 }
 
 func (a *API) CheckCompatibility(ctx context.Context, req *stencilv1beta1.CheckCompatibilityRequest) (*stencilv1beta1.CheckCompatibilityResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "CheckCompatibility")
+	defer endFunc()
 	resp := &stencilv1beta1.CheckCompatibilityResponse{}
 	err := a.schema.CheckCompatibility(ctx, req.GetNamespaceId(), req.GetSchemaId(), req.GetCompatibility().String(), req.GetData())
 	return resp, err
 }
 
 func (a *API) HTTPCheckCompatibility(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
+	endFunc := a.newrelic.StartGenericSegment(req.Context(), "CheckCompatibility")
+	defer endFunc()
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
 		return err
@@ -75,6 +81,8 @@ func (a *API) HTTPCheckCompatibility(w http.ResponseWriter, req *http.Request, p
 }
 
 func (a *API) ListSchemas(ctx context.Context, in *stencilv1beta1.ListSchemasRequest) (*stencilv1beta1.ListSchemasResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "ListSchemas")
+	defer endFunc()
 	schemas, err := a.schema.List(ctx, in.Id)
 
 	var ss []*stencilv1beta1.Schema
@@ -85,6 +93,8 @@ func (a *API) ListSchemas(ctx context.Context, in *stencilv1beta1.ListSchemasReq
 }
 
 func (a *API) GetLatestSchema(ctx context.Context, in *stencilv1beta1.GetLatestSchemaRequest) (*stencilv1beta1.GetLatestSchemaResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "GetLatestSchema")
+	defer endFunc()
 	_, data, err := a.schema.GetLatest(ctx, in.NamespaceId, in.SchemaId)
 	return &stencilv1beta1.GetLatestSchemaResponse{
 		Data: data,
@@ -101,6 +111,8 @@ func (a *API) HTTPLatestSchema(w http.ResponseWriter, req *http.Request, pathPar
 }
 
 func (a *API) GetSchema(ctx context.Context, in *stencilv1beta1.GetSchemaRequest) (*stencilv1beta1.GetSchemaResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "GetSchema")
+	defer endFunc()
 	_, data, err := a.schema.Get(ctx, in.NamespaceId, in.SchemaId, in.GetVersionId())
 	return &stencilv1beta1.GetSchemaResponse{
 		Data: data,
@@ -122,11 +134,15 @@ func (a *API) HTTPGetSchema(w http.ResponseWriter, req *http.Request, pathParams
 }
 
 func (a *API) ListVersions(ctx context.Context, in *stencilv1beta1.ListVersionsRequest) (*stencilv1beta1.ListVersionsResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "ListVersions")
+	defer endFunc()
 	versions, err := a.schema.ListVersions(ctx, in.NamespaceId, in.SchemaId)
 	return &stencilv1beta1.ListVersionsResponse{Versions: versions}, err
 }
 
 func (a *API) GetSchemaMetadata(ctx context.Context, in *stencilv1beta1.GetSchemaMetadataRequest) (*stencilv1beta1.GetSchemaMetadataResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "GetSchemaMetadata")
+	defer endFunc()
 	meta, err := a.schema.GetMetadata(ctx, in.NamespaceId, in.SchemaId)
 	return &stencilv1beta1.GetSchemaMetadataResponse{
 		Format:        stencilv1beta1.Schema_Format(stencilv1beta1.Schema_Format_value[meta.Format]),
@@ -136,6 +152,8 @@ func (a *API) GetSchemaMetadata(ctx context.Context, in *stencilv1beta1.GetSchem
 }
 
 func (a *API) UpdateSchemaMetadata(ctx context.Context, in *stencilv1beta1.UpdateSchemaMetadataRequest) (*stencilv1beta1.UpdateSchemaMetadataResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "UpdateSchemaMetadata")
+	defer endFunc()
 	meta, err := a.schema.UpdateMetadata(ctx, in.NamespaceId, in.SchemaId, &schema.Metadata{
 		Compatibility: in.Compatibility.String(),
 	})
@@ -147,6 +165,8 @@ func (a *API) UpdateSchemaMetadata(ctx context.Context, in *stencilv1beta1.Updat
 }
 
 func (a *API) DeleteSchema(ctx context.Context, in *stencilv1beta1.DeleteSchemaRequest) (*stencilv1beta1.DeleteSchemaResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "DeleteSchema")
+	defer endFunc()
 	err := a.schema.Delete(ctx, in.NamespaceId, in.SchemaId)
 	message := "success"
 	if err != nil {
@@ -158,6 +178,8 @@ func (a *API) DeleteSchema(ctx context.Context, in *stencilv1beta1.DeleteSchemaR
 }
 
 func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersionRequest) (*stencilv1beta1.DeleteVersionResponse, error) {
+	endFunc := a.newrelic.StartGenericSegment(ctx, "DeleteVersion")
+	defer endFunc()
 	err := a.schema.DeleteVersion(ctx, in.NamespaceId, in.SchemaId, in.GetVersionId())
 	message := "success"
 	if err != nil {

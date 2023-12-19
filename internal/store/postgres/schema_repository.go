@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	newrelic2 "github.com/goto/stencil/pkg/newrelic"
 
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/goto/stencil/core/schema"
@@ -10,12 +11,14 @@ import (
 )
 
 type SchemaRepository struct {
-	db *DB
+	db       *DB
+	newrelic newrelic2.Service
 }
 
-func NewSchemaRepository(dbc *DB) *SchemaRepository {
+func NewSchemaRepository(dbc *DB, nr newrelic2.Service) *SchemaRepository {
 	return &SchemaRepository{
-		db: dbc,
+		db:       dbc,
+		newrelic: nr,
 	}
 }
 
@@ -25,6 +28,8 @@ type searchData struct {
 }
 
 func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaName string, metadata *schema.Metadata, versionID string, file *schema.SchemaFile) (int32, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Create Schema")
+	defer endFunc()
 	var version int32
 	err := r.db.BeginFunc(ctx, func(t pgx.Tx) error {
 		vErr := t.QueryRow(ctx, getSchemaVersionByID, versionID).Scan(&version)
@@ -48,6 +53,8 @@ func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaN
 }
 
 func (r *SchemaRepository) Get(ctx context.Context, namespaceId, schemaName string, versionNumber int32) ([]byte, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Get Schema")
+	defer endFunc()
 	var versionID string
 	var data []byte
 	if err := r.db.QueryRow(ctx, getVersionIDFromSchemaNameQuery, namespaceId, schemaName, versionNumber).Scan(&versionID); err != nil {
@@ -58,6 +65,8 @@ func (r *SchemaRepository) Get(ctx context.Context, namespaceId, schemaName stri
 }
 
 func (r *SchemaRepository) GetLatestVersion(ctx context.Context, namespaceId, schemaName string) (int32, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Get Latest Version")
+	defer endFunc()
 	var version int32
 	if err := r.db.QueryRow(ctx, getLatestVersionIDFromSchemaNameQuery, namespaceId, schemaName).Scan(&version); err != nil {
 		return version, wrapError(err, "Latest version for %s - %s", namespaceId, schemaName)
@@ -66,24 +75,32 @@ func (r *SchemaRepository) GetLatestVersion(ctx context.Context, namespaceId, sc
 }
 
 func (r *SchemaRepository) GetMetadata(ctx context.Context, namespace, sc string) (*schema.Metadata, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Get Meta Data")
+	defer endFunc()
 	var meta schema.Metadata
 	err := pgxscan.Get(ctx, r.db, &meta, getSchemaMetaQuery, namespace, sc)
 	return &meta, wrapError(err, "meta")
 }
 
 func (r *SchemaRepository) UpdateMetadata(ctx context.Context, namespace, sc string, in *schema.Metadata) (*schema.Metadata, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Update Meta Data")
+	defer endFunc()
 	var meta schema.Metadata
 	err := pgxscan.Get(ctx, r.db, &meta, updateSchemaMetaQuery, namespace, sc, in.Compatibility)
 	return &meta, wrapError(err, "meta")
 }
 
 func (r *SchemaRepository) List(ctx context.Context, namespaceID string) ([]schema.Schema, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- List Schemas")
+	defer endFunc()
 	var schemas []schema.Schema
 	err := pgxscan.Select(ctx, r.db, &schemas, schemaListQuery, namespaceID)
 	return schemas, wrapError(err, "List schemas")
 }
 
 func (r *SchemaRepository) Delete(ctx context.Context, ns string, sc string) error {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Delete Schema")
+	defer endFunc()
 	_, err := r.db.Exec(ctx, deleteSchemaQuery, ns, sc)
 	// Idempotent operation to clean orphaned data.
 	r.db.Exec(ctx, deleteOrphanedData)
@@ -91,12 +108,16 @@ func (r *SchemaRepository) Delete(ctx context.Context, ns string, sc string) err
 }
 
 func (r *SchemaRepository) ListVersions(ctx context.Context, ns string, sc string) ([]int32, error) {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- List Versions of schema")
+	defer endFunc()
 	var versions []int32
 	err := pgxscan.Select(ctx, r.db, &versions, listVersionsQuery, ns, sc)
 	return versions, wrapError(err, "versions")
 }
 
 func (r *SchemaRepository) DeleteVersion(ctx context.Context, ns string, sc string, version int32) error {
+	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Delete schema version")
+	defer endFunc()
 	_, err := r.db.Exec(ctx, deleteVersionQuery, ns, sc, version)
 	// Idempotent operation to clean orphaned data.
 	r.db.Exec(ctx, deleteOrphanedData)
