@@ -9,8 +9,7 @@ import (
 )
 
 func (a *API) Search(ctx context.Context, in *stencilv1beta1.SearchRequest) (*stencilv1beta1.SearchResponse, error) {
-	endFunc := a.newrelic.StartGenericSegment(ctx, "SearchSegment")
-	defer endFunc()
+	defer a.newrelic.StartGenericSegment(ctx, "SearchSegment")()
 	searchReq := &search.SearchRequest{
 		NamespaceID: in.GetNamespaceId(),
 		Query:       in.GetQuery(),

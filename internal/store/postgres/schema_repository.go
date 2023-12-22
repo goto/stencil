@@ -28,11 +28,11 @@ type searchData struct {
 }
 
 func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaName string, metadata *schema.Metadata, versionID string, file *schema.SchemaFile) (int32, error) {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Create Schema")
-	defer endFunc()
 	var version int32
 	err := r.db.BeginFunc(ctx, func(t pgx.Tx) error {
+		s1 := r.newrelic.StartDBSegment(ctx, "SELECT", "versions")
 		vErr := t.QueryRow(ctx, getSchemaVersionByID, versionID).Scan(&version)
+		s1.End()
 		if vErr == nil {
 			return nil
 		}
@@ -40,33 +40,38 @@ func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaN
 			return vErr
 		}
 		var schemaID int32
+		s2 := r.newrelic.StartDBSegment(ctx, "INSERT", "schemas")
 		if err := t.QueryRow(ctx, schemaInsertQuery, schemaName, namespace, metadata.Format, metadata.Compatibility).Scan(&schemaID); err != nil {
 			return err
 		}
+		s2.End()
+		s3 := r.newrelic.StartDBSegment(ctx, "INSERT", "versions/schema_files/version_schema_files")
 		if err := t.QueryRow(ctx, versionInsertQuery, schemaID, versionID, file.ID,
 			&searchData{Types: file.Types, Fields: file.Fields}, file.Data).Scan(&version); err != nil {
 			return err
 		}
+		s3.End()
 		return nil
 	})
 	return version, wrapError(err, "create schema failed for %s under%s", schemaName, namespace)
 }
 
 func (r *SchemaRepository) Get(ctx context.Context, namespaceId, schemaName string, versionNumber int32) ([]byte, error) {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Get Schema")
-	defer endFunc()
 	var versionID string
 	var data []byte
+	s1 := r.newrelic.StartDBSegment(ctx, "SELECT", "versions/namespaces/schemas")
 	if err := r.db.QueryRow(ctx, getVersionIDFromSchemaNameQuery, namespaceId, schemaName, versionNumber).Scan(&versionID); err != nil {
 		return nil, wrapError(err, "Get schema for %s - %s", namespaceId, schemaName)
 	}
+	s1.End()
+	s2 := r.newrelic.StartDBSegment(ctx, "SELECT", "versions/schema_files/versions_schema_files")
 	err := r.db.QueryRow(ctx, getSchemaDataByVersionID, versionID).Scan(&data)
+	s2.End()
 	return data, wrapError(err, "Get schema for %s - %s", namespaceId, schemaName)
 }
 
 func (r *SchemaRepository) GetLatestVersion(ctx context.Context, namespaceId, schemaName string) (int32, error) {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Get Latest Version")
-	defer endFunc()
+	defer r.newrelic.StartDBSegment(ctx, "SELECT", "versions/namespaces/schemas").End()
 	var version int32
 	if err := r.db.QueryRow(ctx, getLatestVersionIDFromSchemaNameQuery, namespaceId, schemaName).Scan(&version); err != nil {
 		return version, wrapError(err, "Latest version for %s - %s", namespaceId, schemaName)
@@ -75,32 +80,28 @@ func (r *SchemaRepository) GetLatestVersion(ctx context.Context, namespaceId, sc
 }
 
 func (r *SchemaRepository) GetMetadata(ctx context.Context, namespace, sc string) (*schema.Metadata, error) {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Get Meta Data")
-	defer endFunc()
+	defer r.newrelic.StartDBSegment(ctx, "SELECT", "schemas").End()
 	var meta schema.Metadata
 	err := pgxscan.Get(ctx, r.db, &meta, getSchemaMetaQuery, namespace, sc)
 	return &meta, wrapError(err, "meta")
 }
 
 func (r *SchemaRepository) UpdateMetadata(ctx context.Context, namespace, sc string, in *schema.Metadata) (*schema.Metadata, error) {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Update Meta Data")
-	defer endFunc()
+	defer r.newrelic.StartDBSegment(ctx, "UPDATE", "schemas").End()
 	var meta schema.Metadata
 	err := pgxscan.Get(ctx, r.db, &meta, updateSchemaMetaQuery, namespace, sc, in.Compatibility)
 	return &meta, wrapError(err, "meta")
 }
 
 func (r *SchemaRepository) List(ctx context.Context, namespaceID string) ([]schema.Schema, error) {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- List Schemas")
-	defer endFunc()
+	defer r.newrelic.StartDBSegment(ctx, "SELECT", "schemas").End()
 	var schemas []schema.Schema
 	err := pgxscan.Select(ctx, r.db, &schemas, schemaListQuery, namespaceID)
 	return schemas, wrapError(err, "List schemas")
 }
 
 func (r *SchemaRepository) Delete(ctx context.Context, ns string, sc string) error {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Delete Schema")
-	defer endFunc()
+	defer r.newrelic.StartDBSegment(ctx, "DELETE", "versions/schemas").End()
 	_, err := r.db.Exec(ctx, deleteSchemaQuery, ns, sc)
 	// Idempotent operation to clean orphaned data.
 	r.db.Exec(ctx, deleteOrphanedData)
@@ -108,16 +109,14 @@ func (r *SchemaRepository) Delete(ctx context.Context, ns string, sc string) err
 }
 
 func (r *SchemaRepository) ListVersions(ctx context.Context, ns string, sc string) ([]int32, error) {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- List Versions of schema")
-	defer endFunc()
+	defer r.newrelic.StartDBSegment(ctx, "SELECT", "versions/schemas").End()
 	var versions []int32
 	err := pgxscan.Select(ctx, r.db, &versions, listVersionsQuery, ns, sc)
 	return versions, wrapError(err, "versions")
 }
 
 func (r *SchemaRepository) DeleteVersion(ctx context.Context, ns string, sc string, version int32) error {
-	endFunc := r.newrelic.StartGenericSegment(ctx, "Database Call- Delete schema version")
-	defer endFunc()
+	defer r.newrelic.StartDBSegment(ctx, "DELETE", "versions/schemas").End()
 	_, err := r.db.Exec(ctx, deleteVersionQuery, ns, sc, version)
 	// Idempotent operation to clean orphaned data.
 	r.db.Exec(ctx, deleteOrphanedData)

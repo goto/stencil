@@ -9,6 +9,7 @@ import (
 
 type Service interface {
 	StartGenericSegment(context.Context, string) func()
+	StartDBSegment(ctx context.Context, op, table string) *newrelic.DatastoreSegment
 }
 type NewRelic struct {
 }
@@ -23,4 +24,15 @@ func (nr *NewRelic) StartGenericSegment(ctx context.Context, name string) func()
 	}
 	gs.StartTime = txn.StartSegmentNow()
 	return gs.End
+}
+
+func (nr *NewRelic) StartDBSegment(ctx context.Context, op, table string) *newrelic.DatastoreSegment {
+	txn := newrelic.FromContext(ctx)
+	s := newrelic.DatastoreSegment{
+		Product:    newrelic.DatastorePostgres,
+		Collection: table,
+		Operation:  op,
+		StartTime:  txn.StartSegmentNow(),
+	}
+	return &s
 }

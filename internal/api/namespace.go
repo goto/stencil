@@ -29,31 +29,27 @@ func namespaceToProto(ns namespace.Namespace) *stencilv1beta1.Namespace {
 
 // CreateNamespace handler for creating namespace
 func (a *API) CreateNamespace(ctx context.Context, in *stencilv1beta1.CreateNamespaceRequest) (*stencilv1beta1.CreateNamespaceResponse, error) {
-	endFunc := a.newrelic.StartGenericSegment(ctx, "CreateNamespace")
-	defer endFunc()
+	defer a.newrelic.StartGenericSegment(ctx, "CreateNamespace")()
 	ns := createNamespaceRequestToNamespace(in)
 	newNamespace, err := a.namespace.Create(ctx, ns)
 	return &stencilv1beta1.CreateNamespaceResponse{Namespace: namespaceToProto(newNamespace)}, err
 }
 
 func (a *API) UpdateNamespace(ctx context.Context, in *stencilv1beta1.UpdateNamespaceRequest) (*stencilv1beta1.UpdateNamespaceResponse, error) {
-	endFunc := a.newrelic.StartGenericSegment(ctx, "UpdateNamespace")
-	defer endFunc()
+	defer a.newrelic.StartGenericSegment(ctx, "UpdateNamespace")()
 	ns, err := a.namespace.Update(ctx, namespace.Namespace{ID: in.GetId(), Format: in.GetFormat().String(), Compatibility: in.GetCompatibility().String(), Description: in.GetDescription()})
 	return &stencilv1beta1.UpdateNamespaceResponse{Namespace: namespaceToProto(ns)}, err
 }
 
 func (a *API) GetNamespace(ctx context.Context, in *stencilv1beta1.GetNamespaceRequest) (*stencilv1beta1.GetNamespaceResponse, error) {
-	endFunc := a.newrelic.StartGenericSegment(ctx, "GetNamespace")
-	defer endFunc()
+	defer a.newrelic.StartGenericSegment(ctx, "GetNamespace")()
 	namespace, err := a.namespace.Get(ctx, in.GetId())
 	return &stencilv1beta1.GetNamespaceResponse{Namespace: namespaceToProto(namespace)}, err
 }
 
 // ListNamespaces handler for returning list of available namespaces
 func (a *API) ListNamespaces(ctx context.Context, in *stencilv1beta1.ListNamespacesRequest) (*stencilv1beta1.ListNamespacesResponse, error) {
-	endFunc := a.newrelic.StartGenericSegment(ctx, "ListNamespaces")
-	defer endFunc()
+	defer a.newrelic.StartGenericSegment(ctx, "ListNamespaces")()
 	namespaces, err := a.namespace.List(ctx)
 	var nsp []*stencilv1beta1.Namespace
 	for _, n := range namespaces {
@@ -63,8 +59,7 @@ func (a *API) ListNamespaces(ctx context.Context, in *stencilv1beta1.ListNamespa
 }
 
 func (a *API) DeleteNamespace(ctx context.Context, in *stencilv1beta1.DeleteNamespaceRequest) (*stencilv1beta1.DeleteNamespaceResponse, error) {
-	endFunc := a.newrelic.StartGenericSegment(ctx, "DeleteNamespace")
-	defer endFunc()
+	defer a.newrelic.StartGenericSegment(ctx, "DeleteNamespace")()
 	err := a.namespace.Delete(ctx, in.GetId())
 	message := "success"
 	if err != nil {
