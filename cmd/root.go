@@ -33,6 +33,8 @@ func New() *cobra.Command {
 	cdk := &CDK{Config: cmdx.SetConfig("stencil")}
 
 	cmd.AddCommand(ServerCommand())
+	cmd.AddCommand(StartCommand())
+	cmd.AddCommand(MigrateCommand())
 	cmd.AddCommand(configCmd(cdk))
 	cmd.AddCommand(NamespaceCmd(cdk))
 	cmd.AddCommand(SchemaCmd(cdk))

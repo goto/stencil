@@ -26,13 +26,13 @@ func ServerCommand() *cobra.Command {
 		`),
 	}
 
-	cmd.AddCommand(startCommand())
-	cmd.AddCommand(migrateCommand())
+	cmd.AddCommand(StartCommand())
+	cmd.AddCommand(MigrateCommand())
 
 	return cmd
 }
 
-func startCommand() *cobra.Command {
+func StartCommand() *cobra.Command {
 	var configFile string
 
 	cmd := &cobra.Command{
@@ -53,7 +53,7 @@ func startCommand() *cobra.Command {
 	return cmd
 }
 
-func migrateCommand() *cobra.Command {
+func MigrateCommand() *cobra.Command {
 	var configFile string
 
 	cmd := &cobra.Command{
