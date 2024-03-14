@@ -23,3 +23,7 @@ newrelic:
 db:
   # Connection string for postgres database
   connectionstring: "postgres://postgres:password@localhost:5432/db?sslmode=disable"
+# Kafka config
+kafka:
+  hostname: localhost:9092
+  schemachangetopic: "schema_change"

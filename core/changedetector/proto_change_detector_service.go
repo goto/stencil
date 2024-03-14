@@ -3,11 +3,11 @@ package changedetector
 import (
 	"context"
 	"errors"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/google/uuid"
 	"github.com/goto/stencil/pkg/newrelic"
 	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"

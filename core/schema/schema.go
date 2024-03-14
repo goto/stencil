@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/goto/stencil/core/changedetector"
 	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	"google.golang.org/protobuf/proto"
 )
 
 type Metadata struct {
@@ -63,4 +64,8 @@ type Schema struct {
 
 type ChangeDetectorService interface {
 	IdentifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) (*stencilv1beta2.SchemaChangedEvent, error)
+}
+
+type Producer interface {
+	ProduceMessage(topic string, protoMessage proto.Message) error
 }

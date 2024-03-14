@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alecthomas/chroma v0.8.2
+	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/emicklei/dot v0.16.0
@@ -19,7 +20,7 @@ require (
 	github.com/hamba/avro v1.6.2
 	github.com/jackc/pgconn v1.10.0
 	github.com/jackc/pgx/v4 v4.13.0
-	github.com/jhump/protoreflect v1.9.0
+	github.com/jhump/protoreflect v1.12.0
 	github.com/newrelic/go-agent/v3 v3.12.0
 	github.com/newrelic/go-agent/v3/integrations/nrgrpc v1.3.1
 	github.com/pkg/errors v0.9.1

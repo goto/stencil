@@ -12,7 +12,9 @@ import (
 	"log"
 )
 
-func NewService(repo Repository, provider Provider, nsSvc NamespaceService, cache Cache, nr newrelic.Service, cds ChangeDetectorService) *Service {
+func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
+	cache Cache, nr newrelic.Service, cds ChangeDetectorService,
+	producer Producer, schemaChangeTopic string) *Service {
 	return &Service{
 		repo:                  repo,
 		provider:              provider,
@@ -20,6 +22,8 @@ func NewService(repo Repository, provider Provider, nsSvc NamespaceService, cach
 		namespaceService:      nsSvc,
 		newrelic:              nr,
 		changeDetectorService: cds,
+		producer:              producer,
+		schemaChangeTopic:     schemaChangeTopic,
 	}
 }
 
@@ -34,6 +38,8 @@ type Service struct {
 	namespaceService      NamespaceService
 	newrelic              newrelic.Service
 	changeDetectorService ChangeDetectorService
+	producer              Producer
+	schemaChangeTopic     string
 }
 
 func (s *Service) cachedGetSchema(ctx context.Context, nsName, schemaName string, version int32) ([]byte, error) {
@@ -123,14 +129,21 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 	}, err
 }
 
-func (s *Service) identifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) {
+func (s *Service) identifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) error {
 	endFunc := s.newrelic.StartGenericSegment(ctx, "Identify Schema Change")
 	defer endFunc()
 	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, request)
 	if err != nil {
 		log.Printf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %v", request.NamespaceName, request.SchemaName, request.Version, err)
+		return err
 	} else {
 		log.Printf("schema change result %v", sce)
+		if err := s.producer.ProduceMessage(s.schemaChangeTopic, sce); err != nil {
+			log.Printf("unable to push message to Kafka topic %s for schema change event %v: %v", s.schemaChangeTopic, sce, err)
+			return err
+		}
+		log.Printf("successfully pushed message to kafka topic %s", s.schemaChangeTopic)
+		return nil
 	}
 }
 
