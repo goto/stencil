@@ -34,4 +34,10 @@ type Config struct {
 	NewRelic      NewRelicConfig
 	DB            DBConfig
 	KafkaProducer KafkaProducerConfig
+	Kafka         KafkaConfig
+}
+
+type KafkaConfig struct {
+	HostName          string
+	SchemaChangeTopic string
 }

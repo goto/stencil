@@ -23,6 +23,10 @@ newrelic:
 db:
   # Connection string for postgres database
   connectionstring: "postgres://postgres@localhost:5432/db"
+# Kafka config
+kafka:
+  hostname: localhost:9092
+  schemachangetopic: "schema_change"
 
 kafkaProducer:
   bootstrapServer: "localhost:9092"
