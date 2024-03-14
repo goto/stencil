@@ -4,10 +4,25 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"google.golang.org/protobuf/proto"
+	"log"
 )
 
-// ProduceMessage sends a message to the specified Kafka topic
-func produceMessages(producer *kafka.Producer, topic string, protoMessage proto.Message) error {
+type KafkaProducer struct {
+	hostName string
+	producer *kafka.Producer
+}
+
+func NewKafkaProducer(hostName string) (*KafkaProducer, error) {
+	producer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": hostName})
+	if err != nil {
+		log.Printf("failed to create producer: %w", err)
+		return nil, err
+	}
+	return &KafkaProducer{producer: producer}, nil
+}
+
+// ProduceMessages sends a message to the specified Kafka topic
+func (kp *KafkaProducer) ProduceMessages(topic string, protoMessage proto.Message) error {
 	messageBytes, err := proto.Marshal(protoMessage)
 	if err != nil {
 		return fmt.Errorf("failed to marshal Protobuf message: %v", err)
@@ -18,7 +33,7 @@ func produceMessages(producer *kafka.Producer, topic string, protoMessage proto.
 	}
 
 	deliveryChan := make(chan kafka.Event)
-	err = producer.Produce(message, deliveryChan)
+	err = kp.producer.Produce(message, deliveryChan)
 	if err != nil {
 		return fmt.Errorf("failed to produce message: %v", err)
 	}
@@ -28,20 +43,6 @@ func produceMessages(producer *kafka.Producer, topic string, protoMessage proto.
 
 	if m.TopicPartition.Error != nil {
 		return fmt.Errorf("delivery failed: %v", m.TopicPartition.Error)
-	}
-
-	return nil
-}
-
-func ProduceMessages(topic string, protoMessage proto.Message) error {
-	producer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost:9092"})
-	if err != nil {
-		return fmt.Errorf("failed to create producer: %w", err)
-	}
-	defer producer.Close()
-
-	if err := produceMessages(producer, topic, protoMessage); err != nil {
-		fmt.Printf("Error producing message: %v\n", err)
 	}
 
 	return nil
