@@ -18,7 +18,7 @@ func NewKafkaProducer(hostName string) (*KafkaProducer, error) {
 		log.Printf("failed to create producer: %w", err)
 		return nil, err
 	}
-	return &KafkaProducer{producer: producer}, nil
+	return &KafkaProducer{producer: producer, hostName: hostName}, nil
 }
 
 // ProduceMessages sends a message to the specified Kafka topic
