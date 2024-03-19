@@ -44,12 +44,6 @@ func TestEvent(t *testing.T) {
 			assert.Nil(t, err)
 			assertEvent(t, event, eventRes)
 		})
-
-		t.Run("get: should get the event", func(t *testing.T) {
-			eventRes, err := db.Get(ctx, "gojek", "test", 1)
-			assert.Nil(t, err)
-			assertEvent(t, event, eventRes)
-		})
 		t.Run("get: should get the by namespace, schema, version and success", func(t *testing.T) {
 			eventRes, err := db.GetByNameSpaceSchemaAndVersionSuccess(ctx, "gojek", 1, "version_id", true)
 			assert.Nil(t, err)

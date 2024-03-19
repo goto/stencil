@@ -6,14 +6,6 @@ import (
 	"github.com/goto/stencil/core/changedetector"
 )
 
-const notificationEventsGetQuery = `
-SELECT ne.* 
-	from notification_events ne
-	JOIN schema s on s.id=ne.schema_id
-	JOIN version v on v.id=ne.version_id
-    where ne.namespace_id=$1 and s.name=$2 and v.version=$3
-`
-
 const NotificationEventsGetByNamespaceSchemaVersionSuccess = `
 SELECT * from notification_events where namespace_id=$1 and schema_id=$2 and version_id=$3 and success=$4
 `
@@ -44,12 +36,6 @@ func (r *NotificationEventRepository) Create(ctx context.Context, event changede
 	err := pgxscan.Get(ctx, r.db, &newEvent, notificationEventsInsertQuery, event.ID, event.Type, event.Timestamp, event.NamespaceID, event.SchemaID,
 		event.VersionID, event.Success)
 	return newEvent, wrapError(err, event.NamespaceID, event.SchemaID, event.VersionID)
-}
-
-func (r *NotificationEventRepository) Get(ctx context.Context, namespace string, schema string, version int32) (changedetector.NotificationEvent, error) {
-	newEvent := changedetector.NotificationEvent{}
-	err := pgxscan.Get(ctx, r.db, &newEvent, notificationEventsGetQuery, namespace, schema, version)
-	return newEvent, wrapError(err, namespace, schema, version)
 }
 
 func (r *NotificationEventRepository) GetByNameSpaceSchemaAndVersionSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error) {
