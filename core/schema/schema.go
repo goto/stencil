@@ -74,6 +74,5 @@ type Producer interface {
 type NotificationEventRepository interface {
 	Create(ctx context.Context, event changedetector.NotificationEvent) (changedetector.NotificationEvent, error)
 	Update(ctx context.Context, ID string) (changedetector.NotificationEvent, error)
-	Get(ctx context.Context, namespace string, schema string, version int32) (changedetector.NotificationEvent, error)
 	GetByNameSpaceSchemaAndVersionSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error)
 }

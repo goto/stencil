@@ -43,34 +43,6 @@ func (_m *NotificationEventRepository) Create(ctx context.Context, event changed
 	return r0, r1
 }
 
-// Get provides a mock function with given fields: ctx, namespace, _a2, version
-func (_m *NotificationEventRepository) Get(ctx context.Context, namespace string, _a2 string, version int32) (changedetector.NotificationEvent, error) {
-	ret := _m.Called(ctx, namespace, _a2, version)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Get")
-	}
-
-	var r0 changedetector.NotificationEvent
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, int32) (changedetector.NotificationEvent, error)); ok {
-		return rf(ctx, namespace, _a2, version)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, int32) changedetector.NotificationEvent); ok {
-		r0 = rf(ctx, namespace, _a2, version)
-	} else {
-		r0 = ret.Get(0).(changedetector.NotificationEvent)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, int32) error); ok {
-		r1 = rf(ctx, namespace, _a2, version)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetByNameSpaceSchemaAndVersionSuccess provides a mock function with given fields: ctx, namespace, schemaID, versionID, success
 func (_m *NotificationEventRepository) GetByNameSpaceSchemaAndVersionSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error) {
 	ret := _m.Called(ctx, namespace, schemaID, versionID, success)
