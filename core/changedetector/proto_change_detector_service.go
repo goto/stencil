@@ -7,7 +7,7 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/google/uuid"
 	"github.com/goto/stencil/pkg/newrelic"
-	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
@@ -24,16 +24,9 @@ type Service struct {
 	newrelic newrelic.Service
 }
 
-func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeRequest) (*stencilv1beta2.SchemaChangedEvent, error) {
+func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeRequest) (*stencilv1beta1.SchemaChangedEvent, error) {
 	endFunc := s.newrelic.StartGenericSegment(ctx, "Identify Schema Change")
 	defer endFunc()
-	sce := &stencilv1beta2.SchemaChangedEvent{
-		EventId:        uuid.New().String(),
-		EventTimestamp: timestamppb.New(time.Now()),
-		NamespaceName:  request.NamespaceName,
-		SchemaName:     request.SchemaName,
-		Version:        request.Version,
-	}
 	if request.OldData == nil || len(request.OldData) == 0 {
 		log.Println("IdentifySchemaChange failed as previous schema data is nil")
 		return nil, errors.New("previous schema data is nil")
@@ -48,25 +41,31 @@ func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeReque
 		log.Printf("unable getSchemaChangeEvent get file descriptor set from previous schema data %v\n", err)
 		return nil, errors.New("unable getSchemaChangeEvent get file descriptor set from previous schema data")
 	}
+	sce := &stencilv1beta1.SchemaChangedEvent{
+		EventId:        uuid.New().String(),
+		EventTimestamp: timestamppb.New(time.Now()),
+		NamespaceName:  request.NamespaceName,
+		SchemaName:     request.SchemaName,
+		Version:        request.Version,
+	}
 	setDirectlyImpactedSchemasAndFields(currentFds, prevFds, sce)
-	reverseDependencies := make(map[string][]string)
-	populateReverseDependencies(currentFds, reverseDependencies)
+	reverseDependencies := getReverseDependenciesGraph(currentFds)
 	for _, schema := range sce.UpdatedSchemas {
 		appendImpactedDependents(sce, schema, findDependentImpactedSchemas(reverseDependencies, schema))
 	}
 	return sce, nil
 }
 
-func appendImpactedDependents(sce *stencilv1beta2.SchemaChangedEvent, key string, impactedDependents []string) {
+func appendImpactedDependents(sce *stencilv1beta1.SchemaChangedEvent, key string, impactedDependents []string) {
 	if sce.ImpactedSchemas == nil {
-		sce.ImpactedSchemas = make(map[string]*stencilv1beta2.ImpactedSchemas)
+		sce.ImpactedSchemas = make(map[string]*stencilv1beta1.ImpactedSchemas)
 	}
-	sce.ImpactedSchemas[key] = &stencilv1beta2.ImpactedSchemas{
+	sce.ImpactedSchemas[key] = &stencilv1beta1.ImpactedSchemas{
 		SchemaNames: impactedDependents,
 	}
 }
 
-func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDescriptorSet, sce *stencilv1beta2.SchemaChangedEvent) {
+func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDescriptorSet, sce *stencilv1beta1.SchemaChangedEvent) {
 	packageMessageMap := getPackageMessageMap(prevFds)
 	packageEnumMap := getPackageEnumMap(prevFds)
 	for _, fds := range currentFds.GetFile() {
@@ -97,20 +96,21 @@ func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDes
 		compareEnumDescriptors(fds, packageEnumMap, sce)
 	}
 }
-func appendImpactedFields(sce *stencilv1beta2.SchemaChangedEvent, key string, impactedFields []string) {
+func appendImpactedFields(sce *stencilv1beta1.SchemaChangedEvent, key string, impactedFields []string) {
 	if sce.UpdatedFields == nil {
-		sce.UpdatedFields = make(map[string]*stencilv1beta2.ImpactedFields)
+		sce.UpdatedFields = make(map[string]*stencilv1beta1.ImpactedFields)
 	}
 	if val, ok := sce.UpdatedFields[key]; ok {
 		val.FieldNames = append(val.FieldNames, impactedFields...)
+		return
 	} else {
-		sce.UpdatedFields[key] = &stencilv1beta2.ImpactedFields{
+		sce.UpdatedFields[key] = &stencilv1beta1.ImpactedFields{
 			FieldNames: impactedFields,
 		}
 	}
 }
 
-func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMap map[string]map[string]*descriptor.EnumDescriptorProto, sce *stencilv1beta2.SchemaChangedEvent) {
+func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMap map[string]map[string]*descriptor.EnumDescriptorProto, sce *stencilv1beta1.SchemaChangedEvent) {
 	for _, newEnumDesc := range fds.GetEnumType() {
 		enumName := fds.GetPackage() + "." + newEnumDesc.GetName()
 		if oldEnumDesc := getEnumDescriptor(packageEnumMap, fds.GetPackage(), newEnumDesc.GetName()); oldEnumDesc != nil {
@@ -180,7 +180,8 @@ func findEnumDescriptorFromMessageDescriptor(messageDescriptor *descriptor.Descr
 	return nil
 }
 
-func populateReverseDependencies(fileDescriptorSet *descriptor.FileDescriptorSet, reverseDependencies map[string][]string) {
+func getReverseDependenciesGraph(fileDescriptorSet *descriptor.FileDescriptorSet) map[string][]string {
+	reverseDependencies := make(map[string][]string)
 	for _, fileDescriptor := range fileDescriptorSet.GetFile() {
 		for _, messageDescriptor := range fileDescriptor.GetMessageType() {
 			messageName := fileDescriptor.GetPackage() + "." + messageDescriptor.GetName()
@@ -194,6 +195,7 @@ func populateReverseDependencies(fileDescriptorSet *descriptor.FileDescriptorSet
 			}
 		}
 	}
+	return reverseDependencies
 }
 
 func findDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string) []string {

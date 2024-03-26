@@ -22,7 +22,7 @@ func isEnumFieldDeprecated(field1, field2 *descriptor.EnumValueDescriptorProto) 
 }
 
 func getDescriptorSet(data []byte) (*descriptor.FileDescriptorSet, error) {
-	fileDescriptorSet := &descriptor.FileDescriptorSet{}
+	var fileDescriptorSet = &descriptor.FileDescriptorSet{}
 	if err := proto.Unmarshal(data, fileDescriptorSet); err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func getImpactedMessageFields(oldMessageDesc, newMessageDesc *descriptor.Descrip
 	if oldMessageDesc.GetOptions().GetDeprecated() != newMessageDesc.GetOptions().GetDeprecated() {
 		return append(impactedFields, oldMessageDesc.GetName())
 	}
-	newFields := make(map[string]*descriptor.FieldDescriptorProto)
+	var newFields = make(map[string]*descriptor.FieldDescriptorProto)
 	for _, newField := range newMessageDesc.GetField() {
 		newFields[newField.GetName()] = newField
 	}
@@ -54,7 +54,7 @@ func getImpactedMessageFields(oldMessageDesc, newMessageDesc *descriptor.Descrip
 
 func getImpactedEnumFieldInsideMessage(oldMessageDesc, newMessageDesc *descriptor.DescriptorProto) []string {
 	var impactedEnums []string
-	newEnums := make(map[string]*descriptor.EnumDescriptorProto)
+	var newEnums = make(map[string]*descriptor.EnumDescriptorProto)
 	for _, newEnum := range newMessageDesc.GetEnumType() {
 		newEnums[newEnum.GetName()] = newEnum
 	}
@@ -75,7 +75,7 @@ func getImpactedEnumFields(oldEnumDesc, newEnumDesc *descriptor.EnumDescriptorPr
 	if oldEnumDesc.GetOptions().GetDeprecated() != newEnumDesc.GetOptions().GetDeprecated() {
 		return append(impactedFields, oldEnumDesc.GetName())
 	}
-	newFields := make(map[string]*descriptor.EnumValueDescriptorProto)
+	var newFields = make(map[string]*descriptor.EnumValueDescriptorProto)
 	for _, newField := range newEnumDesc.GetValue() {
 		newFields[newField.GetName()] = newField
 	}
