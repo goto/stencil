@@ -68,10 +68,10 @@ func appendImpactedDependents(sce *stencilv1beta1.SchemaChangedEvent, key string
 func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDescriptorSet, sce *stencilv1beta1.SchemaChangedEvent) {
 	packageMessageMap := getPackageMessageMap(prevFds)
 	packageEnumMap := getPackageEnumMap(prevFds)
-	for _, fds := range currentFds.GetFile() {
-		for _, newMessageDesc := range fds.GetMessageType() {
-			messageName := fds.GetPackage() + "." + newMessageDesc.GetName()
-			if oldMessageDesc := getMessageDescriptor(packageMessageMap, fds.GetPackage(), newMessageDesc.GetName()); oldMessageDesc != nil {
+	for _, fd := range currentFds.GetFile() {
+		for _, newMessageDesc := range fd.GetMessageType() {
+			messageName := fd.GetPackage() + "." + newMessageDesc.GetName()
+			if oldMessageDesc := getMessageDescriptor(packageMessageMap, fd.GetPackage(), newMessageDesc.GetName()); oldMessageDesc != nil {
 				if !proto.Equal(newMessageDesc, oldMessageDesc) {
 					sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
 					appendImpactedFields(sce, messageName, getImpactedMessageFields(oldMessageDesc, newMessageDesc))
@@ -93,7 +93,7 @@ func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDes
 				appendImpactedFields(sce, messageName, getImpactedMessageFields(oldMessageDesc, newMessageDesc))
 			}
 		}
-		compareEnumDescriptors(fds, packageEnumMap, sce)
+		compareEnumDescriptors(fd, packageEnumMap, sce)
 	}
 }
 func appendImpactedFields(sce *stencilv1beta1.SchemaChangedEvent, key string, impactedFields []string) {
@@ -125,6 +125,10 @@ func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMa
 	}
 }
 
+/*
+packageMessageMap is map having all the messages inside a package
+[BookingLog][BookingLogMessage]=BookingLogMessage
+*/
 func getPackageMessageMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[string]map[string]*descriptor.DescriptorProto {
 	packageMessageMap := make(map[string]map[string]*descriptor.DescriptorProto)
 	for _, fileDescriptor := range fileDescriptorSet.GetFile() {
@@ -139,18 +143,22 @@ func getPackageMessageMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[s
 	return packageMessageMap
 }
 
+/*
+packageEnumMap is map having all the enums inside a package
+[BookingLog][ServiceType]=ServiceType
+*/
 func getPackageEnumMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[string]map[string]*descriptor.EnumDescriptorProto {
-	packageMessageMap := make(map[string]map[string]*descriptor.EnumDescriptorProto)
+	packageEnumMap := make(map[string]map[string]*descriptor.EnumDescriptorProto)
 	for _, fileDescriptor := range fileDescriptorSet.GetFile() {
 		pkgName := fileDescriptor.GetPackage()
-		if _, ok := packageMessageMap[pkgName]; !ok {
-			packageMessageMap[pkgName] = make(map[string]*descriptor.EnumDescriptorProto)
+		if _, ok := packageEnumMap[pkgName]; !ok {
+			packageEnumMap[pkgName] = make(map[string]*descriptor.EnumDescriptorProto)
 		}
 		for _, enumDescriptor := range fileDescriptor.GetEnumType() {
-			packageMessageMap[pkgName][enumDescriptor.GetName()] = enumDescriptor
+			packageEnumMap[pkgName][enumDescriptor.GetName()] = enumDescriptor
 		}
 	}
-	return packageMessageMap
+	return packageEnumMap
 }
 
 func getMessageDescriptor(packageMessageMap map[string]map[string]*descriptor.DescriptorProto, packageName, messageName string) *descriptor.DescriptorProto {
