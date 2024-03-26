@@ -57,10 +57,10 @@ func Start(cfg config.Config) {
 	}
 	newRelic := &newRelic2.NewRelic{}
 	changeDetectorService := changedetector.NewService()
-	producer := kafkaIntegration.NewProducer(cfg.Kafka.HostName)
+	producer := kafkaIntegration.NewProducer(cfg.SchemaChange.KafkaHost)
 	producer.Initialize()
 	notificationEventRepo := postgres.NewNotificationEventRepository(db)
-	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache, newRelic, changeDetectorService, producer, cfg.Kafka.SchemaChangeTopic, notificationEventRepo)
+	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache, newRelic, changeDetectorService, producer, notificationEventRepo, &cfg.SchemaChange)
 
 	searchRepository := postgres.NewSearchRepository(db)
 	searchService := search.NewService(searchRepository)

@@ -44,12 +44,15 @@ func (s *Service) IdentifySchemaChange(request *ChangeRequest) (*stencilv1beta2.
 	reverseDependencies := make(map[string][]string)
 	populateReverseDependencies(currentFds, reverseDependencies)
 	for _, schema := range sce.UpdatedSchemas {
-		appendImpactedDependents(sce, schema, findDependentImpactedSchemas(reverseDependencies, schema))
+		appendImpactedDependents(sce, schema, findDependentImpactedSchemas(reverseDependencies, schema, request.Depth))
 	}
 	return sce, nil
 }
 
 func appendImpactedDependents(sce *stencilv1beta2.SchemaChangedEvent, key string, impactedDependents []string) {
+	if impactedDependents == nil || len(impactedDependents) == 0 {
+		return
+	}
 	if sce.ImpactedSchemas == nil {
 		sce.ImpactedSchemas = make(map[string]*stencilv1beta2.ImpactedSchemas)
 	}
@@ -188,20 +191,20 @@ func populateReverseDependencies(fileDescriptorSet *descriptor.FileDescriptorSet
 	}
 }
 
-func findDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string) []string {
+func findDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string, depth int32) []string {
 	visitedMessages := make(map[string]bool)
 	var dependentImpactedSchemas []string
-	findDependents(impactedSchema, reverseDependencies, visitedMessages, &dependentImpactedSchemas)
+	findDependents(impactedSchema, reverseDependencies, visitedMessages, &dependentImpactedSchemas, depth)
 	return dependentImpactedSchemas
 }
 
-func findDependents(messageName string, reverseDependencies map[string][]string, visitedMessages map[string]bool, impactedMessages *[]string) {
-	if visitedMessages[messageName] {
+func findDependents(messageName string, reverseDependencies map[string][]string, visitedMessages map[string]bool, impactedMessages *[]string, depth int32) {
+	if visitedMessages[messageName] || depth == 0 {
 		return
 	}
 	visitedMessages[messageName] = true
 	*impactedMessages = append(*impactedMessages, messageName)
 	for _, dependent := range reverseDependencies[messageName] {
-		findDependents(dependent, reverseDependencies, visitedMessages, impactedMessages)
+		findDependents(dependent, reverseDependencies, visitedMessages, impactedMessages, depth-1)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/goto/stencil/config"
 	"github.com/goto/stencil/core/changedetector"
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/internal/store"
@@ -19,7 +20,8 @@ const EventTypeSchemaChange = "SCHEMA_CHANGE_EVENT"
 
 func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
 	cache Cache, nr newrelic.Service, cds ChangeDetectorService,
-	producer Producer, schemaChangeTopic string, notificationEventRepo NotificationEventRepository) *Service {
+	producer Producer, notificationEventRepo NotificationEventRepository,
+	schemaChangeConfig *config.SchemaChangeConfig) *Service {
 	return &Service{
 		repo:                  repo,
 		provider:              provider,
@@ -28,8 +30,8 @@ func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
 		newrelic:              nr,
 		changeDetectorService: cds,
 		producer:              producer,
-		schemaChangeTopic:     schemaChangeTopic,
 		notificationEventRepo: notificationEventRepo,
+		schemaChangeConfig:    schemaChangeConfig,
 	}
 }
 
@@ -45,8 +47,8 @@ type Service struct {
 	newrelic              newrelic.Service
 	changeDetectorService ChangeDetectorService
 	producer              Producer
-	schemaChangeTopic     string
 	notificationEventRepo NotificationEventRepository
+	schemaChangeConfig    *config.SchemaChangeConfig
 }
 
 func (s *Service) cachedGetSchema(ctx context.Context, nsName, schemaName string, version int32) ([]byte, error) {
@@ -128,6 +130,7 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 		VersionID:   versionID,
 		OldData:     prevSchemaData,
 		NewData:     data,
+		Depth:       s.schemaChangeConfig.Depth,
 	}
 	newCtx := context.Background()
 	go s.identifySchemaChange(newCtx, changeRequest)
@@ -166,8 +169,8 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return err
 	}
 	log.Printf("schema change result %v", sce)
-	if err := s.producer.ProduceMessage(s.schemaChangeTopic, sce); err != nil {
-		log.Printf("unable to push message to Kafka topic %s for schema change event %v: %v", s.schemaChangeTopic, sce, err)
+	if err := s.producer.ProduceMessage(s.schemaChangeConfig.KafkaTopic, sce); err != nil {
+		log.Printf("unable to push message to Kafka topic %s for schema change event %v: %v", s.schemaChangeConfig.KafkaTopic, sce, err)
 		notificationEvent := createNotificationEventObject(sce, request, schemaID, false)
 		if _, err := s.notificationEventRepo.Create(ctx, notificationEvent); err != nil {
 			log.Printf("unable to insert event %v in DB, got schErr: %v", notificationEvent, err)
@@ -175,7 +178,7 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		}
 		return nil
 	}
-	log.Printf("successfully pushed message to kafka topic %s", s.schemaChangeTopic)
+	log.Printf("successfully pushed message to kafka topic %s", s.schemaChangeConfig.KafkaTopic)
 	notificationEvent := createNotificationEventObject(sce, request, schemaID, true)
 	if _, err := s.notificationEventRepo.Create(ctx, notificationEvent); err != nil {
 		log.Printf("unable to insert event %v in DB, got schErr: %v", notificationEvent, err)

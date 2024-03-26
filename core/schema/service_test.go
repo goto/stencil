@@ -3,6 +3,7 @@ package schema_test
 import (
 	"context"
 	"errors"
+	"github.com/goto/stencil/config"
 	"github.com/goto/stencil/core/changedetector"
 	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
 	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
@@ -29,7 +30,11 @@ func getSvc() (*schema.Service, *mocks.NamespaceService, *mocks.SchemaProvider, 
 	cache.On("Get", mock.Anything).Return("", false)
 	cache.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(false)
 	producer := &mocks.Producer{}
-	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, "schema_change", neRepo)
+	schemaChangeConfig := &config.SchemaChangeConfig{
+		KafkaTopic: "schema_change",
+		Depth:      1,
+	}
+	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, neRepo, schemaChangeConfig)
 	return svc, nsService, schemaProvider, schemaRepo, newRelic, cdService, producer, neRepo
 }
 
@@ -273,7 +278,7 @@ func TestGetSchema(t *testing.T) {
 		cache := &mocks.SchemaCache{}
 		newrelic := &mocks2.NewRelic{}
 
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, "", nil)
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil, nil)
 		var metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
@@ -303,7 +308,7 @@ func TestGetSchema(t *testing.T) {
 		cache := &mocks.SchemaCache{}
 		newrelic := &mocks2.NewRelic{}
 
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, "", nil)
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil, nil)
 		var metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
