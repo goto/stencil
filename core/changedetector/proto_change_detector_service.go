@@ -71,29 +71,35 @@ func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDes
 	for _, fd := range currentFds.GetFile() {
 		for _, newMessageDesc := range fd.GetMessageType() {
 			messageName := fd.GetPackage() + "." + newMessageDesc.GetName()
-			if oldMessageDesc := getMessageDescriptor(packageMessageMap, fd.GetPackage(), newMessageDesc.GetName()); oldMessageDesc != nil {
-				if !proto.Equal(newMessageDesc, oldMessageDesc) {
-					sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
-					appendImpactedFields(sce, messageName, getImpactedMessageFields(oldMessageDesc, newMessageDesc))
-				}
-				for _, newEnumDesc := range newMessageDesc.GetEnumType() {
-					enumName := messageName + "." + newEnumDesc.GetName()
-					if oldEnumDesc := findEnumDescriptorFromMessageDescriptor(oldMessageDesc, newEnumDesc.GetName()); oldEnumDesc != nil {
-						if !proto.Equal(newEnumDesc, oldEnumDesc) {
-							sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
-							appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
-						}
-					} else {
-						sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
-						appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
-					}
-				}
-			} else {
+			oldMessageDesc := getMessageDescriptor(packageMessageMap, fd.GetPackage(), newMessageDesc.GetName())
+			if oldMessageDesc == nil {
+				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
+				appendImpactedFields(sce, messageName, getImpactedMessageFields(oldMessageDesc, newMessageDesc))
+				continue
+			}
+			if !proto.Equal(newMessageDesc, oldMessageDesc) {
 				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
 				appendImpactedFields(sce, messageName, getImpactedMessageFields(oldMessageDesc, newMessageDesc))
 			}
+			compareEnumDescInMessageDesc(newMessageDesc, oldMessageDesc, messageName, sce)
 		}
 		compareEnumDescriptors(fd, packageEnumMap, sce)
+	}
+}
+
+func compareEnumDescInMessageDesc(newMessageDesc, oldMessageDesc *descriptorpb.DescriptorProto, messageName string, sce *stencilv1beta1.SchemaChangedEvent) {
+	for _, newEnumDesc := range newMessageDesc.GetEnumType() {
+		enumName := messageName + "." + newEnumDesc.GetName()
+		oldEnumDesc := findEnumDescriptorFromMessageDescriptor(oldMessageDesc, newEnumDesc.GetName())
+		if oldEnumDesc == nil {
+			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
+			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
+			continue
+		}
+		if !proto.Equal(newEnumDesc, oldEnumDesc) {
+			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
+			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
+		}
 	}
 }
 func appendImpactedFields(sce *stencilv1beta1.SchemaChangedEvent, key string, impactedFields []string) {
@@ -103,22 +109,22 @@ func appendImpactedFields(sce *stencilv1beta1.SchemaChangedEvent, key string, im
 	if val, ok := sce.UpdatedFields[key]; ok {
 		val.FieldNames = append(val.FieldNames, impactedFields...)
 		return
-	} else {
-		sce.UpdatedFields[key] = &stencilv1beta1.ImpactedFields{
-			FieldNames: impactedFields,
-		}
+	}
+	sce.UpdatedFields[key] = &stencilv1beta1.ImpactedFields{
+		FieldNames: impactedFields,
 	}
 }
 
 func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMap map[string]map[string]*descriptor.EnumDescriptorProto, sce *stencilv1beta1.SchemaChangedEvent) {
 	for _, newEnumDesc := range fds.GetEnumType() {
 		enumName := fds.GetPackage() + "." + newEnumDesc.GetName()
-		if oldEnumDesc := getEnumDescriptor(packageEnumMap, fds.GetPackage(), newEnumDesc.GetName()); oldEnumDesc != nil {
-			if !proto.Equal(newEnumDesc, oldEnumDesc) {
-				sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
-				appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
-			}
-		} else {
+		oldEnumDesc := getEnumDescriptor(packageEnumMap, fds.GetPackage(), newEnumDesc.GetName())
+		if oldEnumDesc == nil {
+			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
+			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
+			continue
+		}
+		if !proto.Equal(newEnumDesc, oldEnumDesc) {
 			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
 			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
 		}
