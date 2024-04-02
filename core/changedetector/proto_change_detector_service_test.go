@@ -197,8 +197,21 @@ func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta2.Sche
 	assert.Equal(t, expected.SchemaName, actual.SchemaName)
 	assert.Equal(t, expected.Version, actual.Version)
 	assert.ElementsMatch(t, expected.UpdatedSchemas, actual.UpdatedSchemas)
-	assert.Equal(t, expected.UpdatedFields, actual.UpdatedFields)
-	assert.Equal(t, expected.ImpactedSchemas, actual.ImpactedSchemas)
+	assertUpdatedFields(t, expected.UpdatedFields, actual.UpdatedFields)
+	assertImpactedSchemas(t, expected.ImpactedSchemas, actual.ImpactedSchemas)
+}
+
+func assertUpdatedFields(t *testing.T, expected, actual map[string]*stencilv1beta2.ImpactedFields) {
+	assert.Equal(t, len(expected), len(actual))
+	for k, v := range expected {
+		assert.ElementsMatch(t, v.FieldNames, actual[k].FieldNames)
+	}
+}
+func assertImpactedSchemas(t *testing.T, expected, actual map[string]*stencilv1beta2.ImpactedSchemas) {
+	assert.Equal(t, len(expected), len(actual))
+	for k, v := range expected {
+		assert.ElementsMatch(t, v.SchemaNames, actual[k].SchemaNames)
+	}
 }
 
 func getSchemaChangeEvent(filePath string) *stencilv1beta2.SchemaChangedEvent {
