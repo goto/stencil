@@ -17,10 +17,19 @@ import (
 	"testing"
 )
 
+var request *changedetector.ChangeRequest
+
 func getSvc() (*changedetector.Service, *mocks2.NewRelic) {
 	newRelic := &mocks2.NewRelic{}
 	svc := changedetector.NewService(newRelic)
 	return svc, newRelic
+}
+func init() {
+	request = &changedetector.ChangeRequest{
+		NamespaceName: "testNamespace",
+		SchemaName:    "testSchemaName",
+		Version:       int32(1),
+	}
 }
 
 func TestIdentifySchemaChange(t *testing.T) {
@@ -28,12 +37,7 @@ func TestIdentifySchemaChange(t *testing.T) {
 
 	t.Run("should return error if previous schema data is nil", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-			NewData:       []byte("b"),
-		}
+		request.NewData = []byte("b")
 		var called bool
 		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
 		_, err := svc.IdentifySchemaChange(ctx, request)
@@ -45,13 +49,8 @@ func TestIdentifySchemaChange(t *testing.T) {
 
 	t.Run("should return error if unable to get file descriptor from current schema data", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-			OldData:       []byte("a"),
-			NewData:       []byte("b"),
-		}
+		request.OldData = []byte("a")
+		request.NewData = []byte("b")
 		var called bool
 		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
 		_, err := svc.IdentifySchemaChange(ctx, request)
@@ -63,12 +62,7 @@ func TestIdentifySchemaChange(t *testing.T) {
 
 	t.Run("should return error if unable to get file descriptor from previous schema data", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-			OldData:       []byte("a"),
-		}
+		request.OldData = []byte("a")
 		var called bool
 		request.NewData = getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v1.proto"})
 		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
@@ -80,11 +74,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 	})
 	t.Run("should return schema change event when any new message added in latest schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-		}
 		var called bool
 		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v1.proto"})
 		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_dependency_v1.proto"})
@@ -101,11 +90,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 	})
 	t.Run("should return schema change event when any new field added in latest schema with no dependent schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-		}
 		var called bool
 		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v1.proto"})
 		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v2.proto"})
@@ -123,11 +107,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 
 	t.Run("should return schema change event when any new field added in latest schema with dependent schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-		}
 		var called bool
 		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_dependency_v1.proto"})
 		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_dependency_v2.proto"})
@@ -144,11 +123,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 	})
 	t.Run("should return schema change event when enum field added inside message in latest schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-		}
 		var called bool
 		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_dependency_v1.proto"})
 		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_enum_inside_message_v2.proto"})
@@ -166,11 +140,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 
 	t.Run("should return schema change event when enum field updated inside message in latest schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-		}
 		var called bool
 		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_enum_inside_message_v1.proto"})
 		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_enum_inside_message_v2.proto"})
@@ -188,11 +157,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 
 	t.Run("should return schema change event when enum field added in latest schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-		}
 		var called bool
 		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v1.proto"})
 		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_enum_added.proto"})
@@ -210,11 +174,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 
 	t.Run("should return schema change event when enum field updated in latest schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
-		request := &changedetector.ChangeRequest{
-			NamespaceName: "testNamespace",
-			SchemaName:    "testSchemaName",
-			Version:       int32(1),
-		}
 		var called bool
 		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_enum_added.proto"})
 		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_enum_updated.proto"})

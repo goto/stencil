@@ -5,23 +5,23 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func isMessageFieldChanged(field1, field2 *descriptor.FieldDescriptorProto) bool {
-	return field1.GetType() != field2.GetType() || field1.GetName() != field2.GetName() || isMessageFieldDeprecated(field1, field2)
+func IsMessageFieldChanged(field1, field2 *descriptor.FieldDescriptorProto) bool {
+	return field1.GetType() != field2.GetType() || field1.GetName() != field2.GetName() || IsMessageFieldDeprecated(field1, field2)
 }
 
-func isMessageFieldDeprecated(field1, field2 *descriptor.FieldDescriptorProto) bool {
+func IsMessageFieldDeprecated(field1, field2 *descriptor.FieldDescriptorProto) bool {
 	return field1.GetOptions() != field1.GetOptions() || field1.GetOptions().GetDeprecated() != field2.GetOptions().GetDeprecated()
 }
 
-func isEnumFieldChanged(field1, field2 *descriptor.EnumValueDescriptorProto) bool {
-	return field1.GetName() != field2.GetName() || isEnumFieldDeprecated(field1, field2)
+func IsEnumFieldChanged(field1, field2 *descriptor.EnumValueDescriptorProto) bool {
+	return field1.GetName() != field2.GetName() || IsEnumFieldDeprecated(field1, field2)
 }
 
-func isEnumFieldDeprecated(field1, field2 *descriptor.EnumValueDescriptorProto) bool {
+func IsEnumFieldDeprecated(field1, field2 *descriptor.EnumValueDescriptorProto) bool {
 	return field1.GetOptions() != field1.GetOptions() || field1.GetOptions().GetDeprecated() != field2.GetOptions().GetDeprecated()
 }
 
-func getDescriptorSet(data []byte) (*descriptor.FileDescriptorSet, error) {
+func GetDescriptorSet(data []byte) (*descriptor.FileDescriptorSet, error) {
 	var fileDescriptorSet = &descriptor.FileDescriptorSet{}
 	if err := proto.Unmarshal(data, fileDescriptorSet); err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func getDescriptorSet(data []byte) (*descriptor.FileDescriptorSet, error) {
 	return fileDescriptorSet, nil
 }
 
-func getImpactedMessageFields(oldMessageDesc, newMessageDesc *descriptor.DescriptorProto) []string {
+func GetImpactedMessageFields(oldMessageDesc, newMessageDesc *descriptor.DescriptorProto) []string {
 	var impactedFields []string
 	if oldMessageDesc.GetOptions().GetDeprecated() != newMessageDesc.GetOptions().GetDeprecated() {
 		return append(impactedFields, oldMessageDesc.GetName())
@@ -40,7 +40,7 @@ func getImpactedMessageFields(oldMessageDesc, newMessageDesc *descriptor.Descrip
 	}
 	for _, oldField := range oldMessageDesc.GetField() {
 		if newFields[oldField.GetName()] != nil {
-			if isMessageFieldChanged(oldField, newFields[oldField.GetName()]) {
+			if IsMessageFieldChanged(oldField, newFields[oldField.GetName()]) {
 				impactedFields = append(impactedFields, oldField.GetName())
 			}
 			delete(newFields, oldField.GetName())
@@ -49,10 +49,10 @@ func getImpactedMessageFields(oldMessageDesc, newMessageDesc *descriptor.Descrip
 	for name := range newFields {
 		impactedFields = append(impactedFields, name)
 	}
-	return append(impactedFields, getImpactedEnumFieldInsideMessage(oldMessageDesc, newMessageDesc)...)
+	return append(impactedFields, GetImpactedEnumFieldInsideMessage(oldMessageDesc, newMessageDesc)...)
 }
 
-func getImpactedEnumFieldInsideMessage(oldMessageDesc, newMessageDesc *descriptor.DescriptorProto) []string {
+func GetImpactedEnumFieldInsideMessage(oldMessageDesc, newMessageDesc *descriptor.DescriptorProto) []string {
 	var impactedEnums []string
 	var newEnums = make(map[string]*descriptor.EnumDescriptorProto)
 	for _, newEnum := range newMessageDesc.GetEnumType() {
@@ -70,7 +70,7 @@ func getImpactedEnumFieldInsideMessage(oldMessageDesc, newMessageDesc *descripto
 	return impactedEnums
 }
 
-func getImpactedEnumFields(oldEnumDesc, newEnumDesc *descriptor.EnumDescriptorProto) []string {
+func GetImpactedEnumFields(oldEnumDesc, newEnumDesc *descriptor.EnumDescriptorProto) []string {
 	var impactedFields []string
 	if oldEnumDesc.GetOptions().GetDeprecated() != newEnumDesc.GetOptions().GetDeprecated() {
 		return append(impactedFields, oldEnumDesc.GetName())
@@ -81,7 +81,7 @@ func getImpactedEnumFields(oldEnumDesc, newEnumDesc *descriptor.EnumDescriptorPr
 	}
 	for _, oldField := range oldEnumDesc.GetValue() {
 		if newFields[oldField.GetName()] != nil {
-			if isEnumFieldChanged(oldField, newFields[oldField.GetName()]) {
+			if IsEnumFieldChanged(oldField, newFields[oldField.GetName()]) {
 				impactedFields = append(impactedFields, oldEnumDesc.GetName()+"."+oldField.GetName())
 			}
 			delete(newFields, oldField.GetName())

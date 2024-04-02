@@ -3,11 +3,11 @@ package changedetector
 import (
 	"context"
 	"errors"
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/google/uuid"
 	"github.com/goto/stencil/pkg/newrelic"
 	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log"
@@ -31,12 +31,12 @@ func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeReque
 		log.Println("IdentifySchemaChange failed as previous schema data is nil")
 		return nil, errors.New("previous schema data is nil")
 	}
-	currentFds, err := getDescriptorSet(request.NewData)
+	currentFds, err := GetDescriptorSet(request.NewData)
 	if err != nil {
 		log.Printf("unable getSchemaChangeEvent get file descriptor set from current schema data %v\n", err)
 		return nil, errors.New("unable getSchemaChangeEvent get file descriptor set from current schema data")
 	}
-	prevFds, err := getDescriptorSet(request.OldData)
+	prevFds, err := GetDescriptorSet(request.OldData)
 	if err != nil {
 		log.Printf("unable getSchemaChangeEvent get file descriptor set from previous schema data %v\n", err)
 		return nil, errors.New("unable getSchemaChangeEvent get file descriptor set from previous schema data")
@@ -74,12 +74,12 @@ func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDes
 			oldMessageDesc := getMessageDescriptor(packageMessageMap, fd.GetPackage(), newMessageDesc.GetName())
 			if oldMessageDesc == nil {
 				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
-				appendImpactedFields(sce, messageName, getImpactedMessageFields(oldMessageDesc, newMessageDesc))
+				appendImpactedFields(sce, messageName, GetImpactedMessageFields(oldMessageDesc, newMessageDesc))
 				continue
 			}
 			if !proto.Equal(newMessageDesc, oldMessageDesc) {
 				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
-				appendImpactedFields(sce, messageName, getImpactedMessageFields(oldMessageDesc, newMessageDesc))
+				appendImpactedFields(sce, messageName, GetImpactedMessageFields(oldMessageDesc, newMessageDesc))
 			}
 			compareEnumDescInMessageDesc(newMessageDesc, oldMessageDesc, messageName, sce)
 		}
@@ -93,12 +93,12 @@ func compareEnumDescInMessageDesc(newMessageDesc, oldMessageDesc *descriptorpb.D
 		oldEnumDesc := findEnumDescriptorFromMessageDescriptor(oldMessageDesc, newEnumDesc.GetName())
 		if oldEnumDesc == nil {
 			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
-			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
+			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 			continue
 		}
 		if !proto.Equal(newEnumDesc, oldEnumDesc) {
 			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
-			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
+			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 		}
 	}
 }
@@ -121,12 +121,12 @@ func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMa
 		oldEnumDesc := getEnumDescriptor(packageEnumMap, fds.GetPackage(), newEnumDesc.GetName())
 		if oldEnumDesc == nil {
 			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
-			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
+			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 			continue
 		}
 		if !proto.Equal(newEnumDesc, oldEnumDesc) {
 			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
-			appendImpactedFields(sce, enumName, getImpactedEnumFields(oldEnumDesc, newEnumDesc))
+			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 		}
 	}
 }
