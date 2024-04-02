@@ -202,12 +202,14 @@ func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta2.Sche
 }
 
 func assertUpdatedFields(t *testing.T, expected, actual map[string]*stencilv1beta2.ImpactedFields) {
+	t.Helper()
 	assert.Equal(t, len(expected), len(actual))
 	for k, v := range expected {
 		assert.ElementsMatch(t, v.FieldNames, actual[k].FieldNames)
 	}
 }
 func assertImpactedSchemas(t *testing.T, expected, actual map[string]*stencilv1beta2.ImpactedSchemas) {
+	t.Helper()
 	assert.Equal(t, len(expected), len(actual))
 	for k, v := range expected {
 		assert.ElementsMatch(t, v.SchemaNames, actual[k].SchemaNames)
