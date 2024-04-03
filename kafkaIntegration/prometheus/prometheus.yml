@@ -6,7 +6,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9102']
 
-  - job_name: 'kafka_integration_success'
+  - job_name: 'success_count'
     static_configs:
       - targets: ['localhost:9102']
     metrics_path: /metrics
@@ -14,7 +14,7 @@ scrape_configs:
       match[]:
         - kafka_integration_success_count_total
 
-  - job_name: 'kafka_integration_failure'
+  - job_name: 'failure_count'
     static_configs:
       - targets: ['localhost:9102']
     metrics_path: /metrics
@@ -22,7 +22,7 @@ scrape_configs:
       match[]:
         - kafka_integration_failure_count_total
 
-  - job_name: 'kafka_integration_latency'
+  - job_name: 'latency'
     static_configs:
       - targets: ['localhost:9102']
     metrics_path: /metrics

@@ -21,7 +21,7 @@ func NewMetricsCollector(statsdAddr string) (*MetricsCollector, error) {
 
 	statsdClient, err := statsd.NewClient(statsdAddr, "")
 	if err != nil {
-		log.Printf("failed to create statsd client: %v", err)
+		log.Printf(err.Error())
 		return nil, err
 	}
 
