@@ -47,31 +47,31 @@ func TestIdentifySchemaChange(t *testing.T) {
 		assert.True(t, called)
 	})
 
-	t.Run("should return error if unable to get file descriptor from current schema data", func(t *testing.T) {
-		svc, newRelic := getSvc()
-		request.OldData = []byte("a")
-		request.NewData = []byte("b")
-		var called bool
-		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
-		_, err := svc.IdentifySchemaChange(ctx, request)
-		assert.NotNil(t, err)
-		assert.Equal(t, errors.New("unable getSchemaChangeEvent get file descriptor set from current schema data"), err)
-		newRelic.AssertExpectations(t)
-		assert.True(t, called)
-	})
-
 	t.Run("should return error if unable to get file descriptor from previous schema data", func(t *testing.T) {
 		svc, newRelic := getSvc()
 		request.OldData = []byte("a")
 		var called bool
-		request.NewData = getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v1.proto"})
 		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
 		_, err := svc.IdentifySchemaChange(ctx, request)
 		assert.NotNil(t, err)
-		assert.Equal(t, errors.New("unable getSchemaChangeEvent get file descriptor set from previous schema data"), err)
+		assert.Equal(t, errors.New("unable to get file descriptor set from previous schema data"), err)
 		newRelic.AssertExpectations(t)
 		assert.True(t, called)
 	})
+
+	t.Run("should return error if unable to get file descriptor from current schema data", func(t *testing.T) {
+		svc, newRelic := getSvc()
+		request.NewData = []byte("b")
+		var called bool
+		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
+		request.OldData = getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v1.proto"})
+		_, err := svc.IdentifySchemaChange(ctx, request)
+		assert.NotNil(t, err)
+		assert.Equal(t, errors.New("unable to get file descriptor set from current schema data"), err)
+		newRelic.AssertExpectations(t)
+		assert.True(t, called)
+	})
+
 	t.Run("should return schema change event when any new message added in latest schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
 		var called bool

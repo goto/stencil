@@ -31,15 +31,15 @@ func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeReque
 		log.Println("IdentifySchemaChange failed as previous schema data is nil")
 		return nil, errors.New("previous schema data is nil")
 	}
-	currentFds, err := GetDescriptorSet(request.NewData)
-	if err != nil {
-		log.Printf("unable getSchemaChangeEvent get file descriptor set from current schema data %v\n", err)
-		return nil, errors.New("unable getSchemaChangeEvent get file descriptor set from current schema data")
-	}
 	prevFds, err := GetDescriptorSet(request.OldData)
 	if err != nil {
-		log.Printf("unable getSchemaChangeEvent get file descriptor set from previous schema data %v\n", err)
-		return nil, errors.New("unable getSchemaChangeEvent get file descriptor set from previous schema data")
+		log.Printf("unable to get file descriptor set from previous schema data %s\n", err.Error())
+		return nil, errors.New("unable to get file descriptor set from previous schema data")
+	}
+	currentFds, err := GetDescriptorSet(request.NewData)
+	if err != nil {
+		log.Printf("unable to get file descriptor set from current schema data %s\n", err.Error())
+		return nil, errors.New("unable to get file descriptor set from current schema data")
 	}
 	sce := &stencilv1beta1.SchemaChangedEvent{
 		EventId:        uuid.New().String(),
@@ -49,9 +49,9 @@ func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeReque
 		Version:        request.Version,
 	}
 	setDirectlyImpactedSchemasAndFields(currentFds, prevFds, sce)
-	reverseDependencies := getReverseDependenciesGraph(currentFds)
+	reverseDependencies := getReverseDependencies(currentFds)
 	for _, schema := range sce.UpdatedSchemas {
-		appendImpactedDependents(sce, schema, findDependentImpactedSchemas(reverseDependencies, schema))
+		appendImpactedDependents(sce, schema, getDependentImpactedSchemas(reverseDependencies, schema))
 	}
 	return sce, nil
 }
@@ -68,26 +68,26 @@ func appendImpactedDependents(sce *stencilv1beta1.SchemaChangedEvent, key string
 func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDescriptorSet, sce *stencilv1beta1.SchemaChangedEvent) {
 	packageMessageMap := getPackageMessageMap(prevFds)
 	packageEnumMap := getPackageEnumMap(prevFds)
-	for _, fd := range currentFds.GetFile() {
-		for _, newMessageDesc := range fd.GetMessageType() {
-			messageName := fd.GetPackage() + "." + newMessageDesc.GetName()
-			oldMessageDesc := getMessageDescriptor(packageMessageMap, fd.GetPackage(), newMessageDesc.GetName())
+	for _, fileDesc := range currentFds.GetFile() {
+		for _, newMessageDesc := range fileDesc.GetMessageType() {
+			messageName := fileDesc.GetPackage() + "." + newMessageDesc.GetName()
+			oldMessageDesc := getMessageDescriptor(packageMessageMap, fileDesc.GetPackage(), newMessageDesc.GetName())
 			if oldMessageDesc == nil {
 				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
 				appendImpactedFields(sce, messageName, GetImpactedMessageFields(oldMessageDesc, newMessageDesc))
 				continue
 			}
-			if !proto.Equal(newMessageDesc, oldMessageDesc) {
+			if !proto.Equal(oldMessageDesc, newMessageDesc) {
 				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
 				appendImpactedFields(sce, messageName, GetImpactedMessageFields(oldMessageDesc, newMessageDesc))
 			}
-			compareEnumDescInMessageDesc(newMessageDesc, oldMessageDesc, messageName, sce)
+			compareEnumDescInMessageDesc(oldMessageDesc, newMessageDesc, messageName, sce)
 		}
-		compareEnumDescriptors(fd, packageEnumMap, sce)
+		compareEnumDescriptors(fileDesc, packageEnumMap, sce)
 	}
 }
 
-func compareEnumDescInMessageDesc(newMessageDesc, oldMessageDesc *descriptorpb.DescriptorProto, messageName string, sce *stencilv1beta1.SchemaChangedEvent) {
+func compareEnumDescInMessageDesc(oldMessageDesc, newMessageDesc *descriptorpb.DescriptorProto, messageName string, sce *stencilv1beta1.SchemaChangedEvent) {
 	for _, newEnumDesc := range newMessageDesc.GetEnumType() {
 		enumName := messageName + "." + newEnumDesc.GetName()
 		oldEnumDesc := findEnumDescriptorFromMessageDescriptor(oldMessageDesc, newEnumDesc.GetName())
@@ -96,12 +96,14 @@ func compareEnumDescInMessageDesc(newMessageDesc, oldMessageDesc *descriptorpb.D
 			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 			continue
 		}
-		if !proto.Equal(newEnumDesc, oldEnumDesc) {
+		if !proto.Equal(oldEnumDesc, newEnumDesc) {
 			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
 			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 		}
 	}
 }
+
+// Key can be messageName or enumName
 func appendImpactedFields(sce *stencilv1beta1.SchemaChangedEvent, key string, impactedFields []string) {
 	if sce.UpdatedFields == nil {
 		sce.UpdatedFields = make(map[string]*stencilv1beta1.ImpactedFields)
@@ -124,7 +126,7 @@ func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMa
 			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 			continue
 		}
-		if !proto.Equal(newEnumDesc, oldEnumDesc) {
+		if !proto.Equal(oldEnumDesc, newEnumDesc) {
 			sce.UpdatedSchemas = append(sce.UpdatedSchemas, enumName)
 			appendImpactedFields(sce, enumName, GetImpactedEnumFields(oldEnumDesc, newEnumDesc))
 		}
@@ -133,7 +135,7 @@ func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMa
 
 /*
 packageMessageMap is map having all the messages inside a package
-[BookingLog][BookingLogMessage]=BookingLogMessage
+[com.goto.bookinglog][BookingLogMessage]=BookingLogMessageDescriptor
 */
 func getPackageMessageMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[string]map[string]*descriptor.DescriptorProto {
 	packageMessageMap := make(map[string]map[string]*descriptor.DescriptorProto)
@@ -151,7 +153,7 @@ func getPackageMessageMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[s
 
 /*
 packageEnumMap is map having all the enums inside a package
-[BookingLog][ServiceType]=ServiceType
+[com.goto.bookinglog][ServiceTypeEnum]=ServiceTypeEnumDescriptor
 */
 func getPackageEnumMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[string]map[string]*descriptor.EnumDescriptorProto {
 	packageEnumMap := make(map[string]map[string]*descriptor.EnumDescriptorProto)
@@ -194,14 +196,16 @@ func findEnumDescriptorFromMessageDescriptor(messageDescriptor *descriptor.Descr
 	return nil
 }
 
-func getReverseDependenciesGraph(fileDescriptorSet *descriptor.FileDescriptorSet) map[string][]string {
+func getReverseDependencies(fileDescriptorSet *descriptor.FileDescriptorSet) map[string][]string {
 	reverseDependencies := make(map[string][]string)
 	for _, fileDescriptor := range fileDescriptorSet.GetFile() {
 		for _, messageDescriptor := range fileDescriptor.GetMessageType() {
 			messageName := fileDescriptor.GetPackage() + "." + messageDescriptor.GetName()
 			for _, fieldDescriptor := range messageDescriptor.GetField() {
 				fieldType := fieldDescriptor.GetTypeName()
-				// Check if the field type is a message (nested message or imported message)
+				/*Check if the field type is a message (nested message or imported message)
+				Ref:https://cloud.google.com/java/docs/reference/protobuf/latest/com.google.protobuf.DescriptorProtos.FieldDescriptorProto#com_google_protobuf_DescriptorProtos_FieldDescriptorProto_getType__:~:text=The%20type.-,getTypeName(),-public%20String%20getTypeName
+				*/
 				if fieldType != "" && fieldType[0] == '.' {
 					dependentMessage := fieldType[1:]
 					reverseDependencies[dependentMessage] = append(reverseDependencies[dependentMessage], messageName)
@@ -212,7 +216,7 @@ func getReverseDependenciesGraph(fileDescriptorSet *descriptor.FileDescriptorSet
 	return reverseDependencies
 }
 
-func findDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string) []string {
+func getDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string) []string {
 	visitedMessages := make(map[string]bool)
 	var dependentImpactedSchemas []string
 	findDependents(impactedSchema, reverseDependencies, visitedMessages, &dependentImpactedSchemas)
