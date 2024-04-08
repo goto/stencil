@@ -13,7 +13,7 @@ func NewMetricsCollector(statsdAddr string) (*MetricsCollector, error) {
 
 	statsdClient, err := statsd.NewClient(statsdAddr, "")
 	if err != nil {
-		log.Printf(err.Error())
+		log.Printf("Failed to initialise statsd client- %s", err.Error())
 		return nil, err
 	}
 
