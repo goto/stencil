@@ -20,7 +20,7 @@ type GRPCConfig struct {
 	MaxSendMsgSizeInMB int `default:"10"`
 }
 
-type ProducerConfig struct {
+type KafkaProducerConfig struct {
 	BootstrapServer string
 }
 
@@ -33,5 +33,5 @@ type Config struct {
 	GRPC          GRPCConfig
 	NewRelic      NewRelicConfig
 	DB            DBConfig
-	Producer      ProducerConfig
+	KafkaProducer KafkaProducerConfig
 }

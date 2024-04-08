@@ -1,4 +1,4 @@
-package kafkaIntegration
+package kafka
 
 import (
 	"fmt"
@@ -10,62 +10,46 @@ import (
 )
 
 type KafkaProducer struct {
-	hostName string
-	producer *kafka.Producer
-	metrics  *ProducerMetrics
+	hostName     string
+	producer     *kafka.Producer
+	statsdClient statsd.Statter
 }
 
 const (
-	LatencyMetric      = "kafkaIntegration.Latency"
-	SuccessCountMetric = "kafkaIntegration.SuccessCount"
-	FailureCountMetric = "kafkaIntegration.FailureCount"
+	SuccessCountMetric = "kafka.SuccessCount"
+	FailureCountMetric = "kafka.FailureCount"
 )
 
-func NewKafkaProducer(hostName string) (*KafkaProducer, error) {
+func NewKafkaProducer(hostName string, statsdClient statsd.Statter) (*KafkaProducer, error) {
 	producer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": hostName})
 	if err != nil {
 		log.Printf(err.Error())
 		return nil, err
 	}
 
-	return &KafkaProducer{producer: producer, hostName: hostName, metrics: &ProducerMetrics{
-		SuccessCount: 0,
-		FailureCount: 0,
-		Latency:      0,
-	}}, nil
+	return &KafkaProducer{producer: producer, hostName: hostName, statsdClient: statsdClient}, nil
 }
 
-func (kp *KafkaProducer) PushMessagesWithRetries(topic string, protoMessage proto.Message, statsdClient statsd.Statter, retries int, retryInterval time.Duration) error {
+func (kp *KafkaProducer) PushMessagesWithRetries(topic string, protoMessage proto.Message, retries int, retryInterval time.Duration) error {
 	messageBytes, err := proto.Marshal(protoMessage)
 	if err != nil {
 		return fmt.Errorf("failed to marshal Protobuf message: %v", err)
 	}
-	startTime := time.Now()
-	for i := 1; i <= retries; i++ {
+
+	for i := 0; i < retries; i++ {
 		err := kp.PushMessages(messageBytes, topic)
 		if err != nil {
 			time.Sleep(retryInterval)
 			continue
 		}
-		endTime := time.Now()
-		latency := endTime.Sub(startTime)
-		kp.metrics.Latency = latency
 
-		kp.metrics.SuccessCount++
-
-		err = statsdClient.Gauge(LatencyMetric, latency.Milliseconds(), 1)
-		if err != nil {
-			log.Printf(err.Error())
-		}
-
-		err = statsdClient.Inc(SuccessCountMetric, int64(kp.metrics.SuccessCount), 1)
+		err = kp.statsdClient.Inc(SuccessCountMetric, 1, 1)
 		if err != nil {
 			log.Printf(err.Error())
 		}
 		return nil
 	}
-	kp.metrics.FailureCount++
-	err = statsdClient.Inc(FailureCountMetric, int64(kp.metrics.FailureCount), 1)
+	err = kp.statsdClient.Inc(FailureCountMetric, 1, 1)
 	if err != nil {
 		log.Printf(err.Error())
 	}
