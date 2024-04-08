@@ -2,8 +2,6 @@ module github.com/goto/stencil
 
 go 1.21
 
-toolchain go1.21.3
-
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alecthomas/chroma v0.8.2
