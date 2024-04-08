@@ -12,8 +12,8 @@ require (
 	github.com/emicklei/dot v0.16.0
 	github.com/georgysavva/scany v0.2.9
 	github.com/golang-migrate/migrate/v4 v4.15.2
+	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.6.0
-	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/mux v1.8.0
 	github.com/goto/salt v0.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -59,7 +59,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/golang/glog v1.2.0 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
