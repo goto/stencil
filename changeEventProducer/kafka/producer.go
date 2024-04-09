@@ -16,8 +16,9 @@ type KafkaProducer struct {
 }
 
 const (
-	SuccessCountMetric = "kafka.SuccessCount"
-	FailureCountMetric = "kafka.FailureCount"
+	SuccessCountMetric   = "kafka.SuccessCount"
+	FailureCountMetric   = "kafka.FailureCount"
+	RetryExhaustedMetric = "kafka.RetryExhaustedMetric"
 )
 
 func NewKafkaProducer(hostName string, statsdClient statsd.Statter) (*KafkaProducer, error) {
@@ -33,23 +34,23 @@ func NewKafkaProducer(hostName string, statsdClient statsd.Statter) (*KafkaProdu
 func (kp *KafkaProducer) PushMessagesWithRetries(topic string, protoMessage proto.Message, retries int, retryInterval time.Duration) error {
 	messageBytes, err := proto.Marshal(protoMessage)
 	if err != nil {
-		return fmt.Errorf("failed to marshal Protobuf message: %v", err)
+		return fmt.Errorf("failed to marshal Protobuf message: %s", err.Error())
 	}
 
 	for i := 0; i < retries; i++ {
 		err := kp.PushMessages(messageBytes, topic)
 		if err != nil {
+			err = kp.statsdClient.Inc(FailureCountMetric, 1, 1)
 			time.Sleep(retryInterval)
 			continue
 		}
-
 		err = kp.statsdClient.Inc(SuccessCountMetric, 1, 1)
 		if err != nil {
 			log.Printf("Failed to increase Success metric - %s", err.Error())
 		}
 		return nil
 	}
-	err = kp.statsdClient.Inc(FailureCountMetric, 1, 1)
+	err = kp.statsdClient.Inc(RetryExhaustedMetric, 1, 1)
 	if err != nil {
 		log.Printf("Failed to increase Failure metric - %s", err.Error())
 	}
@@ -57,24 +58,20 @@ func (kp *KafkaProducer) PushMessagesWithRetries(topic string, protoMessage prot
 }
 
 func (kp *KafkaProducer) PushMessages(messageBytes []byte, topic string) error {
-
 	message := &kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 		Value:          messageBytes,
 	}
-
 	deliveryChan := make(chan kafka.Event)
 	err := kp.producer.Produce(message, deliveryChan)
 	if err != nil {
 		log.Printf("Error in producing messages- %s", err.Error())
 		return err
 	}
-
 	deliveryReport := <-deliveryChan
 	if m, ok := deliveryReport.(*kafka.Message); ok && m.TopicPartition.Error != nil {
 		log.Printf("Error in topic partitioning- %s", err.Error())
 		return err
 	}
-
 	return nil
 }
