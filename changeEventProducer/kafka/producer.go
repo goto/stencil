@@ -40,7 +40,10 @@ func (kp *KafkaProducer) PushMessagesWithRetries(topic string, protoMessage prot
 	for i := 0; i < retries; i++ {
 		err := kp.PushMessages(messageBytes, topic)
 		if err != nil {
-			err = kp.statsdClient.Inc(FailureCountMetric, 1, 1)
+			metricError := kp.statsdClient.Inc(FailureCountMetric, 1, 1)
+			if metricError != nil {
+				log.Printf("Failed to increase Failure metric - %s", metricError.Error())
+			}
 			time.Sleep(retryInterval)
 			continue
 		}
@@ -52,7 +55,7 @@ func (kp *KafkaProducer) PushMessagesWithRetries(topic string, protoMessage prot
 	}
 	err = kp.statsdClient.Inc(RetryExhaustedMetric, 1, 1)
 	if err != nil {
-		log.Printf("Failed to increase Failure metric - %s", err.Error())
+		log.Printf("Failed to increase retryExhausted metric - %s", err.Error())
 	}
 	return fmt.Errorf("failed to produce message after %d retries", retries)
 }
