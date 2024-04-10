@@ -134,8 +134,6 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 }
 
 func (s *Service) identifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) error {
-	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
-	retryInterval := time.Duration(s.config.KafkaProducer.RetryInterval) * time.Millisecond
 	endFunc := s.newrelic.StartGenericSegment(ctx, "Identify Schema Change")
 	defer endFunc()
 	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, request)
@@ -143,8 +141,9 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		log.Printf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %v", request.NamespaceName, request.SchemaName, request.Version, err)
 		return err
 	}
-	log.Printf("schema change result %v", sce)
-
+	log.Printf("schema change result %s", sce.String())
+	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
+	retryInterval := time.Duration(s.config.KafkaProducer.RetryInterval) * time.Millisecond
 	if err := s.producer.PushMessagesWithRetries(schemaChangeTopic, sce, s.config.KafkaProducer.Retries, retryInterval); err != nil {
 		log.Printf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
 		return err
