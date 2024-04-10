@@ -4,17 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/google/uuid"
+
+	"github.com/goto/stencil/config"
 	"github.com/goto/stencil/core/changedetector"
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/internal/store"
 	"github.com/goto/stencil/pkg/newrelic"
-	"log"
 )
 
 func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
 	cache Cache, nr newrelic.Service, cds ChangeDetectorService,
-	producer Producer, schemaChangeTopic string) *Service {
+	producer Producer, config *config.Config) *Service {
 	return &Service{
 		repo:                  repo,
 		provider:              provider,
@@ -23,7 +27,7 @@ func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
 		newrelic:              nr,
 		changeDetectorService: cds,
 		producer:              producer,
-		schemaChangeTopic:     schemaChangeTopic,
+		config:                config,
 	}
 }
 
@@ -39,7 +43,7 @@ type Service struct {
 	newrelic              newrelic.Service
 	changeDetectorService ChangeDetectorService
 	producer              Producer
-	schemaChangeTopic     string
+	config                *config.Config
 }
 
 func (s *Service) cachedGetSchema(ctx context.Context, nsName, schemaName string, version int32) ([]byte, error) {
@@ -130,21 +134,23 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 }
 
 func (s *Service) identifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) error {
+	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
+	retryInterval := time.Duration(s.config.KafkaProducer.RetryInterval) * time.Millisecond
 	endFunc := s.newrelic.StartGenericSegment(ctx, "Identify Schema Change")
 	defer endFunc()
 	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, request)
 	if err != nil {
 		log.Printf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %v", request.NamespaceName, request.SchemaName, request.Version, err)
 		return err
-	} else {
-		log.Printf("schema change result %v", sce)
-		if err := s.producer.ProduceMessage(s.schemaChangeTopic, sce); err != nil {
-			log.Printf("unable to push message to Kafka topic %s for schema change event %v: %v", s.schemaChangeTopic, sce, err)
-			return err
-		}
-		log.Printf("successfully pushed message to kafka topic %s", s.schemaChangeTopic)
-		return nil
 	}
+	log.Printf("schema change result %v", sce)
+
+	if err := s.producer.PushMessagesWithRetries(schemaChangeTopic, sce, s.config.KafkaProducer.Retries, retryInterval); err != nil {
+		log.Printf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
+		return err
+	}
+	log.Printf("successfully pushed message to kafka topic %s", schemaChangeTopic)
+	return nil
 }
 
 func (s *Service) withMetadata(ctx context.Context, namespace, schemaName string, getData func() ([]byte, error)) (*Metadata, []byte, error) {

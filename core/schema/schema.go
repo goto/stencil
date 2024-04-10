@@ -2,9 +2,12 @@ package schema
 
 import (
 	"context"
+	"time"
+
+	"google.golang.org/protobuf/proto"
+
 	"github.com/goto/stencil/core/changedetector"
 	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
-	"google.golang.org/protobuf/proto"
 )
 
 type Metadata struct {
@@ -67,5 +70,5 @@ type ChangeDetectorService interface {
 }
 
 type Producer interface {
-	ProduceMessage(topic string, protoMessage proto.Message) error
+	PushMessagesWithRetries(topic string, protoMessage proto.Message, retries int, retryInterval time.Duration) error
 }

@@ -3,17 +3,20 @@ package schema_test
 import (
 	"context"
 	"errors"
-	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
-	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 	"testing"
 	"time"
+
+	"github.com/goto/stencil/config"
+	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
+	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/core/schema"
 	"github.com/goto/stencil/core/schema/mocks"
 	"github.com/goto/stencil/internal/store"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func getSvc() (*schema.Service, *mocks.NamespaceService, *mocks.SchemaProvider, *mocks.SchemaRepository, *mocks2.NewRelic, *mocks.ChangeDetectorService, *mocks.Producer) {
@@ -26,7 +29,8 @@ func getSvc() (*schema.Service, *mocks.NamespaceService, *mocks.SchemaProvider, 
 	cache.On("Get", mock.Anything).Return("", false)
 	cache.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(false)
 	producer := &mocks.Producer{}
-	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, "schema_change")
+	config := &config.Config{}
+	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, config)
 	return svc, nsService, schemaProvider, schemaRepo, newRelic, cdService, producer
 }
 
@@ -89,7 +93,7 @@ func TestSchemaCreate(t *testing.T) {
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
 		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 		cdService.On("IdentifySchemaChange", mock.Anything, mock.Anything).Return(&stencilv1beta2.SchemaChangedEvent{}, nil)
-		producer.On("ProduceMessage", mock.Anything, mock.Anything).Return(nil)
+		producer.On("PushMessagesWithRetries", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		var called bool
 		var compatibility bool
 		var cdCalled bool
@@ -266,7 +270,7 @@ func TestGetSchema(t *testing.T) {
 		cache := &mocks.SchemaCache{}
 		newrelic := &mocks2.NewRelic{}
 
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, "")
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil)
 		var metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
@@ -296,7 +300,7 @@ func TestGetSchema(t *testing.T) {
 		cache := &mocks.SchemaCache{}
 		newrelic := &mocks2.NewRelic{}
 
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, "")
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil)
 		var metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
