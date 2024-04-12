@@ -11,12 +11,9 @@ import (
 	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
 	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
-	"github.com/jackc/pgx/v4"
-	"testing"
-	"time"
 
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/core/schema"
@@ -24,7 +21,6 @@ import (
 	"github.com/goto/stencil/internal/store"
 )
 
-func getSvc() (*schema.Service, *mocks.NamespaceService, *mocks.SchemaProvider, *mocks.SchemaRepository, *mocks2.NewRelic, *mocks.ChangeDetectorService, *mocks.Producer) {
 func getSvc() (*schema.Service, *mocks.NamespaceService, *mocks.SchemaProvider, *mocks.SchemaRepository, *mocks2.NewRelic, *mocks.ChangeDetectorService, *mocks.Producer, *mocks.NotificationEventRepository) {
 	nsService := &mocks.NamespaceService{}
 	schemaProvider := &mocks.SchemaProvider{}
@@ -33,16 +29,12 @@ func getSvc() (*schema.Service, *mocks.NamespaceService, *mocks.SchemaProvider, 
 	newRelic := &mocks2.NewRelic{}
 	cdService := &mocks.ChangeDetectorService{}
 	neRepo := &mocks.NotificationEventRepository{}
-	cdService := &mocks.ChangeDetectorService{}
 	cache.On("Get", mock.Anything).Return("", false)
 	cache.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(false)
 	producer := &mocks.Producer{}
-	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, "schema_change", neRepo)
-	return svc, nsService, schemaProvider, schemaRepo, newRelic, cdService, producer, neRepo
-	producer := &mocks.Producer{}
 	config := &config.Config{}
-	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, config)
-	return svc, nsService, schemaProvider, schemaRepo, newRelic, cdService, producer
+	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, config, neRepo)
+	return svc, nsService, schemaProvider, schemaRepo, newRelic, cdService, producer, neRepo
 }
 
 func TestSchemaCreate(t *testing.T) {
@@ -50,7 +42,6 @@ func TestSchemaCreate(t *testing.T) {
 
 	t.Run("should return error if namespace not found", func(t *testing.T) {
 		svc, nsService, _, _, newrelic, _, _, _ := getSvc()
-		svc, nsService, _, _, newrelic, _, _ := getSvc()
 		nsName := "testNamespace"
 		var called bool
 		newrelic.On("StartGenericSegment", mock.Anything, "Create Schema Info").Return(func() { called = true })
@@ -64,7 +55,6 @@ func TestSchemaCreate(t *testing.T) {
 	})
 
 	t.Run("should return error if schema validation fails", func(t *testing.T) {
-		svc, nsService, schemaProvider, _, newrelic, _, _ := getSvc()
 		svc, nsService, schemaProvider, _, newrelic, _, _, _ := getSvc()
 		nsName := "testNamespace"
 		data := []byte("data")
@@ -80,7 +70,6 @@ func TestSchemaCreate(t *testing.T) {
 	})
 
 	t.Run("should get format from namespace if format at schema level not defined", func(t *testing.T) {
-		svc, nsService, schemaProvider, _, newrelic, _, _ := getSvc()
 		svc, nsService, schemaProvider, _, newrelic, _, _, _ := getSvc()
 		nsName := "testNamespace"
 		data := []byte("data")
@@ -96,7 +85,6 @@ func TestSchemaCreate(t *testing.T) {
 	})
 
 	t.Run("should skip compatibility check if previous latest schema not present", func(t *testing.T) {
-		svc, nsService, schemaProvider, schemaRepo, newrelic, cdService, producer := getSvc()
 		svc, nsService, schemaProvider, schemaRepo, newrelic, cdService, producer, neRepo := getSvc()
 		scFile := &schema.SchemaFile{}
 		parsedSchema := &mocks.ParsedSchema{}
@@ -110,9 +98,7 @@ func TestSchemaCreate(t *testing.T) {
 		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 		cdService.On("IdentifySchemaChange", mock.Anything, mock.Anything).Return(&stencilv1beta2.SchemaChangedEvent{}, nil)
 		producer.On("PushMessagesWithRetries", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-		cdService.On("IdentifySchemaChange", mock.Anything, mock.Anything).Return(&stencilv1beta2.SchemaChangedEvent{}, nil)
-		producer.On("ProduceMessage", mock.Anything, mock.Anything).Return(nil)
-		neRepo.On("GetByNameSpaceSchemaAndVersionSuccess", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, pgx.ErrNoRows)
+		neRepo.On("GetByNameSpaceSchemaVersionAndSuccess", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, pgx.ErrNoRows)
 		neRepo.On("Create", mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, nil)
 		var called bool
 		var compatibility bool
@@ -129,8 +115,6 @@ func TestSchemaCreate(t *testing.T) {
 		cdService.AssertExpectations(t)
 		producer.AssertExpectations(t)
 		neRepo.AssertExpectations(t)
-		cdService.AssertExpectations(t)
-		producer.AssertExpectations(t)
 		newrelic.AssertExpectations(t)
 		assert.True(t, called)
 		assert.True(t, compatibility)
@@ -138,7 +122,6 @@ func TestSchemaCreate(t *testing.T) {
 	})
 	t.Run("should return error if unable to get prev latest schema", func(t *testing.T) {
 		svc, nsService, schemaProvider, schemaRepo, newrelic, _, _, _ := getSvc()
-		svc, nsService, schemaProvider, schemaRepo, newrelic, _, _ := getSvc()
 		parsedSchema := &mocks.ParsedSchema{}
 		nsName := "testNamespace"
 		data := []byte("data")
@@ -159,7 +142,6 @@ func TestSchemaCreate(t *testing.T) {
 	})
 	t.Run("should return error if previous latest schema is not valid", func(t *testing.T) {
 		svc, nsService, schemaProvider, schemaRepo, newrelic, _, _, _ := getSvc()
-		svc, nsService, schemaProvider, schemaRepo, newrelic, _, _ := getSvc()
 		parsedSchema := &mocks.ParsedSchema{}
 		prevParsedSchema := &mocks.ParsedSchema{}
 		nsName := "testNamespace"
@@ -200,7 +182,6 @@ func TestSchemaCreate(t *testing.T) {
 		} {
 			t.Run(test.compatibility, func(t *testing.T) {
 				svc, nsService, schemaProvider, schemaRepo, newrelic, _, _, _ := getSvc()
-				svc, nsService, schemaProvider, schemaRepo, newrelic, _, _ := getSvc()
 				parsedSchema := &mocks.ParsedSchema{}
 				prevParsedSchema := &mocks.ParsedSchema{}
 				nsName := "testNamespace"
@@ -242,7 +223,6 @@ func TestGetSchema(t *testing.T) {
 	nsName := "testNamespace"
 	schemaName := "testSchema"
 	t.Run("should return error if get metadata fails", func(t *testing.T) {
-		svc, _, _, repo, newrelic, _, _ := getSvc()
 		svc, _, _, repo, newrelic, _, _, _ := getSvc()
 		var metadata bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
@@ -255,7 +235,6 @@ func TestGetSchema(t *testing.T) {
 	})
 
 	t.Run("should return error if getting data fails", func(t *testing.T) {
-		svc, _, _, repo, newrelic, _, _ := getSvc()
 		svc, _, _, repo, newrelic, _, _, _ := getSvc()
 		version := int32(1)
 		var metadata, dataCheck bool
@@ -273,7 +252,6 @@ func TestGetSchema(t *testing.T) {
 
 	t.Run("should return metadata along with schema data", func(t *testing.T) {
 		svc, _, _, repo, newrelic, _, _, _ := getSvc()
-		svc, _, _, repo, newrelic, _, _ := getSvc()
 		version := int32(1)
 		data := []byte("data")
 		meta := &schema.Metadata{Format: "protobuf"}
@@ -299,8 +277,7 @@ func TestGetSchema(t *testing.T) {
 		cache := &mocks.SchemaCache{}
 		newrelic := &mocks2.NewRelic{}
 
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, "", nil)
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil)
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil, nil)
 		var metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })
@@ -330,8 +307,7 @@ func TestGetSchema(t *testing.T) {
 		cache := &mocks.SchemaCache{}
 		newrelic := &mocks2.NewRelic{}
 
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, "", nil)
-		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil)
+		svc := schema.NewService(repo, schemaProvider, nsService, cache, newrelic, nil, nil, nil, nil)
 		var metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "GetData").Return(func() { dataCheck = true })

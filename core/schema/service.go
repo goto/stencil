@@ -9,28 +9,21 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/jackc/pgx/v4"
+
 	"github.com/goto/stencil/config"
-	"github.com/goto/stencil/core/changedetector"
-	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/core/changedetector"
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/internal/store"
 	"github.com/goto/stencil/pkg/newrelic"
-	"github.com/goto/stencil/pkg/newrelic"
 	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
-	"github.com/jackc/pgx/v4"
-	"log"
-	"time"
 )
 
-func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
-	cache Cache, nr newrelic.Service, cds ChangeDetectorService,
-	producer Producer, config *config.Config) *Service {
 const EventTypeSchemaChange = "SCHEMA_CHANGE_EVENT"
 
 func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
 	cache Cache, nr newrelic.Service, cds ChangeDetectorService,
-	producer Producer, schemaChangeTopic string, notificationEventRepo NotificationEventRepository) *Service {
+	producer Producer, config *config.Config, notificationEventRepo NotificationEventRepository) *Service {
 	return &Service{
 		repo:                  repo,
 		provider:              provider,
@@ -40,14 +33,6 @@ func NewService(repo Repository, provider Provider, nsSvc NamespaceService,
 		changeDetectorService: cds,
 		producer:              producer,
 		config:                config,
-		repo:                  repo,
-		provider:              provider,
-		cache:                 cache,
-		namespaceService:      nsSvc,
-		newrelic:              nr,
-		changeDetectorService: cds,
-		producer:              producer,
-		schemaChangeTopic:     schemaChangeTopic,
 		notificationEventRepo: notificationEventRepo,
 	}
 }
@@ -64,16 +49,8 @@ type Service struct {
 	newrelic              newrelic.Service
 	changeDetectorService ChangeDetectorService
 	producer              Producer
-	schemaChangeTopic     string
-	notificationEventRepo NotificationEventRepository
-	provider              Provider
-	repo                  Repository
-	cache                 Cache
-	namespaceService      NamespaceService
-	newrelic              newrelic.Service
-	changeDetectorService ChangeDetectorService
-	producer              Producer
 	config                *config.Config
+	notificationEventRepo NotificationEventRepository
 }
 
 func (s *Service) cachedGetSchema(ctx context.Context, nsName, schemaName string, version int32) ([]byte, error) {
@@ -158,14 +135,6 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 	}
 	newCtx := context.Background()
 	go s.identifySchemaChange(newCtx, changeRequest)
-	changeRequest := &changedetector.ChangeRequest{
-		NamespaceName: nsName,
-		SchemaName:    schemaName,
-		Version:       version,
-		OldData:       prevSchemaData,
-		NewData:       data,
-	}
-	go s.identifySchemaChange(ctx, changeRequest)
 	return SchemaInfo{
 		Version:  version,
 		ID:       versionID,
@@ -176,34 +145,14 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 func (s *Service) identifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) error {
 	endFunc := s.newrelic.StartGenericSegment(ctx, "Identify Schema Change")
 	defer endFunc()
-	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, request)
-	if err != nil {
-		log.Printf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %v", request.NamespaceName, request.SchemaName, request.Version, err)
-		return err
-	}
-	log.Printf("schema change result %s", sce.String())
-	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
-	retryInterval := time.Duration(s.config.KafkaProducer.RetryInterval) * time.Millisecond
-	if err := s.producer.PushMessagesWithRetries(schemaChangeTopic, sce, s.config.KafkaProducer.Retries, retryInterval); err != nil {
-		log.Printf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
-		return err
-	}
-	log.Printf("successfully pushed message to kafka topic %s", schemaChangeTopic)
-	return nil
-}
-
-func (s *Service) identifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) error {
-	endFunc := s.newrelic.StartGenericSegment(ctx, "Identify Schema Change")
-	defer endFunc()
 	schemaID, err := s.repo.GetSchemaID(ctx, request.NamespaceID, request.SchemaName)
 	if err != nil {
-		log.Printf("got schErr while getting schema ID from DB %v", err)
+		log.Printf("got error while getting schema ID from DB %s", err.Error())
 		return err
 	}
-	prevEvent, err := s.notificationEventRepo.GetByNameSpaceSchemaAndVersionSuccess(ctx, request.NamespaceID, schemaID, request.VersionID, true)
+	prevEvent, err := s.notificationEventRepo.GetByNameSpaceSchemaVersionAndSuccess(ctx, request.NamespaceID, schemaID, request.VersionID, true)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		log.Printf("got schErr while fetching previous notification event status for for namespace : %s, schema: %s, version: %d, %v", request.NamespaceID, request.SchemaName, request.Version, err)
-		return err
+		log.Printf("got error while fetching previous notification event status for for namespace : %s, schema: %s, version: %d, %v", request.NamespaceID, request.SchemaName, request.Version, err)
 	}
 	if prevEvent.ID != "" {
 		log.Printf("Duplicate request for schema change for namespace : %s, schema: %s, version: %d", request.NamespaceID, request.SchemaName, request.Version)
@@ -214,22 +163,24 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		log.Printf("Update successful for schema change event")
 		return nil
 	}
-	sce, err := s.changeDetectorService.IdentifySchemaChange(request)
+	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, request)
 	if err != nil {
-		log.Printf("got schErr while identifying schema change for namespace : %s, schema: %s, version: %d, %v", request.NamespaceID, request.SchemaName, request.Version, err)
+		log.Printf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %v", request.NamespaceID, request.SchemaName, request.Version, err)
 		return err
 	}
 	log.Printf("schema change result %v", sce)
-	if err := s.producer.ProduceMessage(s.schemaChangeTopic, sce); err != nil {
-		log.Printf("unable to push message to Kafka topic %s for schema change event %v: %v", s.schemaChangeTopic, sce, err)
+	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
+	retryInterval := time.Duration(s.config.KafkaProducer.RetryInterval) * time.Millisecond
+	if err := s.producer.PushMessagesWithRetries(schemaChangeTopic, sce, s.config.KafkaProducer.Retries, retryInterval); err != nil {
+		log.Printf("unable to push message to Kafka topic %s for schema change event %v: %v", schemaChangeTopic, sce, err)
 		notificationEvent := createNotificationEventObject(sce, request, schemaID, false)
 		if _, err := s.notificationEventRepo.Create(ctx, notificationEvent); err != nil {
-			log.Printf("unable to insert event %v in DB, got schErr: %v", notificationEvent, err)
+			log.Printf("unable to insert event %v in DB, got error: %v", notificationEvent, err)
 			return err
 		}
 		return nil
 	}
-	log.Printf("successfully pushed message to kafka topic %s", s.schemaChangeTopic)
+	log.Printf("successfully pushed message to kafka topic %s", schemaChangeTopic)
 	notificationEvent := createNotificationEventObject(sce, request, schemaID, true)
 	if _, err := s.notificationEventRepo.Create(ctx, notificationEvent); err != nil {
 		log.Printf("unable to insert event %v in DB, got schErr: %v", notificationEvent, err)

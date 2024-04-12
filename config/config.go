@@ -38,7 +38,6 @@ type SchemaChangeConfig struct {
 	KafkaTopic string
 }
 
-// Config Server config
 type Config struct {
 	Port string `default:"8080"`
 	// Timeout represents graceful shutdown period. Defaults to 60 seconds.
@@ -47,12 +46,6 @@ type Config struct {
 	GRPC          GRPCConfig
 	NewRelic      NewRelicConfig
 	DB            DBConfig
-	Kafka         KafkaConfig
-}
-
-type KafkaConfig struct {
-	HostName          string
-	SchemaChangeTopic string
 	KafkaProducer KafkaProducerConfig
 	StatsD        StatsDConfig
 	SchemaChange  SchemaChangeConfig

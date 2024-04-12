@@ -44,11 +44,11 @@ func (_m *NotificationEventRepository) Create(ctx context.Context, event changed
 }
 
 // GetByNameSpaceSchemaAndVersionSuccess provides a mock function with given fields: ctx, namespace, schemaID, versionID, success
-func (_m *NotificationEventRepository) GetByNameSpaceSchemaAndVersionSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error) {
+func (_m *NotificationEventRepository) GetByNameSpaceSchemaVersionAndSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error) {
 	ret := _m.Called(ctx, namespace, schemaID, versionID, success)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetByNameSpaceSchemaAndVersionSuccess")
+		panic("no return value specified for GetByNameSpaceSchemaVersionAndSuccess")
 	}
 
 	var r0 changedetector.NotificationEvent

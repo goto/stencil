@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+
 	"github.com/georgysavva/scany/pgxscan"
+
 	"github.com/goto/stencil/core/changedetector"
 )
 
@@ -38,7 +40,7 @@ func (r *NotificationEventRepository) Create(ctx context.Context, event changede
 	return newEvent, wrapError(err, event.NamespaceID, event.SchemaID, event.VersionID)
 }
 
-func (r *NotificationEventRepository) GetByNameSpaceSchemaAndVersionSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error) {
+func (r *NotificationEventRepository) GetByNameSpaceSchemaVersionAndSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error) {
 	newEvent := changedetector.NotificationEvent{}
 	err := pgxscan.Get(ctx, r.db, &newEvent, NotificationEventsGetByNamespaceSchemaVersionSuccess, namespace, schemaID, versionID, success)
 	return newEvent, wrapError(err, namespace, schemaID, versionID, success)

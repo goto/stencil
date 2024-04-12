@@ -2,12 +2,14 @@ package postgres_test
 
 import (
 	"context"
-	"github.com/goto/stencil/core/changedetector"
-	"github.com/goto/stencil/internal/store/postgres"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/goto/stencil/core/changedetector"
+	"github.com/goto/stencil/internal/store/postgres"
 )
 
 func getEventStore(t *testing.T) *postgres.NotificationEventRepository {
@@ -45,7 +47,7 @@ func TestEvent(t *testing.T) {
 			assertEvent(t, event, eventRes)
 		})
 		t.Run("get: should get the by namespace, schema, version and success", func(t *testing.T) {
-			eventRes, err := db.GetByNameSpaceSchemaAndVersionSuccess(ctx, "gojek", 1, "version_id", true)
+			eventRes, err := db.GetByNameSpaceSchemaVersionAndSuccess(ctx, "gojek", 1, "version_id", true)
 			assert.Nil(t, err)
 			assertEvent(t, event, eventRes)
 		})
