@@ -3,7 +3,10 @@
 package mocks
 
 import (
+	context "context"
+
 	changedetector "github.com/goto/stencil/core/changedetector"
+
 	mock "github.com/stretchr/testify/mock"
 
 	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
@@ -14,9 +17,9 @@ type ChangeDetectorService struct {
 	mock.Mock
 }
 
-// IdentifySchemaChange provides a mock function with given fields: request
-func (_m *ChangeDetectorService) IdentifySchemaChange(request *changedetector.ChangeRequest) (*stencilv1beta1.SchemaChangedEvent, error) {
-	ret := _m.Called(request)
+// IdentifySchemaChange provides a mock function with given fields: ctx, request
+func (_m *ChangeDetectorService) IdentifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) (*stencilv1beta1.SchemaChangedEvent, error) {
+	ret := _m.Called(ctx, request)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IdentifySchemaChange")
@@ -24,19 +27,19 @@ func (_m *ChangeDetectorService) IdentifySchemaChange(request *changedetector.Ch
 
 	var r0 *stencilv1beta1.SchemaChangedEvent
 	var r1 error
-	if rf, ok := ret.Get(0).(func(*changedetector.ChangeRequest) (*stencilv1beta1.SchemaChangedEvent, error)); ok {
-		return rf(request)
+	if rf, ok := ret.Get(0).(func(context.Context, *changedetector.ChangeRequest) (*stencilv1beta1.SchemaChangedEvent, error)); ok {
+		return rf(ctx, request)
 	}
-	if rf, ok := ret.Get(0).(func(*changedetector.ChangeRequest) *stencilv1beta1.SchemaChangedEvent); ok {
-		r0 = rf(request)
+	if rf, ok := ret.Get(0).(func(context.Context, *changedetector.ChangeRequest) *stencilv1beta1.SchemaChangedEvent); ok {
+		r0 = rf(ctx, request)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*stencilv1beta1.SchemaChangedEvent)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(*changedetector.ChangeRequest) error); ok {
-		r1 = rf(request)
+	if rf, ok := ret.Get(1).(func(context.Context, *changedetector.ChangeRequest) error); ok {
+		r1 = rf(ctx, request)
 	} else {
 		r1 = ret.Error(1)
 	}
