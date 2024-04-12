@@ -1,0 +1,1 @@
+000003_initialize_notification_events.down.sql
