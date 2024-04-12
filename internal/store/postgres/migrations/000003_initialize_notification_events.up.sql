@@ -1,1 +1,11 @@
-000003_initialize_notification_events.down.sql
+CREATE TABLE IF NOT EXISTS notification_events(
+    id                  VARCHAR PRIMARY KEY,
+    type                VARCHAR,
+    timestamp           TIMESTAMP,
+    namespace_id        VARCHAR,
+    schema_id           BIGINT,
+    version_id          VARCHAR,
+    success             BOOLEAN,
+    created_at          TIMESTAMP,
+    updated_at          TIMESTAMP
+);
