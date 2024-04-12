@@ -3,6 +3,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/goto/stencil/core/changedetector"
+	"github.com/goto/stencil/kafkaIntegration"
+	newRelic2 "github.com/goto/stencil/pkg/newrelic"
 	"log"
 	"net/http"
 	"strings"
@@ -75,6 +78,11 @@ func Start(cfg config.Config) {
 		log.Fatal("Error creating producer :", err)
 	}
 	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache, newRelic, changeDetectorService, producer, &cfg)
+	changeDetectorService := changedetector.NewService()
+	producer := kafkaIntegration.NewProducer(cfg.Kafka.HostName)
+	producer.Initialize()
+	notificationEventRepo := postgres.NewNotificationEventRepository(db)
+	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache, newRelic, changeDetectorService, producer, cfg.Kafka.SchemaChangeTopic, notificationEventRepo)
 
 	searchRepository := postgres.NewSearchRepository(db)
 	searchService := search.NewService(searchRepository)

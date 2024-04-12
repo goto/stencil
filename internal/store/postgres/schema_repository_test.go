@@ -67,6 +67,11 @@ func TestSchema(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, []byte("testdata"), s)
 		})
+		t.Run("get: should return specified schema ID", func(t *testing.T) {
+			s, err := db.GetSchemaID(ctx, n.ID, "sName")
+			assert.Nil(t, err)
+			assert.NotZero(t, s)
+		})
 		t.Run("getMetadata: should return metadata", func(t *testing.T) {
 			actual, err := db.GetMetadata(ctx, n.ID, "sName")
 			assert.Nil(t, err)

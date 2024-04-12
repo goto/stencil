@@ -103,6 +103,12 @@ func (r *SchemaRepository) DeleteVersion(ctx context.Context, ns string, sc stri
 	return wrapError(err, "delete version")
 }
 
+func (r *SchemaRepository) GetSchemaID(ctx context.Context, ns string, sc string) (int32, error) {
+	var schemaID int32
+	err := pgxscan.Get(ctx, r.db, &schemaID, getSchemaIDByNSAndSchemaName, ns, sc)
+	return schemaID, wrapError(err, sc)
+}
+
 const schemaInsertQuery = `
 INSERT INTO schemas (name, namespace_id, format, compatibility, created_at, updated_at)
     VALUES ($1, $2, $3, $4, now(), now())
@@ -200,4 +206,8 @@ DELETE from versions where id=(select id from version)
 
 const deleteOrphanedData = `
 DELETE from schema_files WHERE id NOT IN (SELECT DISTINCT vsf.schema_file_id from versions_schema_files as vsf)
+`
+
+const getSchemaIDByNSAndSchemaName = `
+select id  from schemas where namespace_id=$1 AND name=$2
 `

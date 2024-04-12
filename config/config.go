@@ -47,6 +47,12 @@ type Config struct {
 	GRPC          GRPCConfig
 	NewRelic      NewRelicConfig
 	DB            DBConfig
+	Kafka         KafkaConfig
+}
+
+type KafkaConfig struct {
+	HostName          string
+	SchemaChangeTopic string
 	KafkaProducer KafkaProducerConfig
 	StatsD        StatsDConfig
 	SchemaChange  SchemaChangeConfig
