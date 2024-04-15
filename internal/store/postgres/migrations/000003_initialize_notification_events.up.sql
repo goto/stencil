@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS notification_events(
     id                  VARCHAR PRIMARY KEY,
     type                VARCHAR,
-    timestamp           TIMESTAMP,
+    event_time           TIMESTAMP,
     namespace_id        VARCHAR,
     schema_id           BIGINT,
     version_id          VARCHAR,

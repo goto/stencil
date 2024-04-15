@@ -14,7 +14,7 @@ type ChangeRequest struct {
 type NotificationEvent struct {
 	ID          string
 	Type        string
-	Timestamp   time.Time
+	EventTime   time.Time
 	NamespaceID string
 	SchemaID    int32
 	VersionID   string

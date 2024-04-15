@@ -43,7 +43,7 @@ func (_m *NotificationEventRepository) Create(ctx context.Context, event changed
 	return r0, r1
 }
 
-// GetByNameSpaceSchemaAndVersionSuccess provides a mock function with given fields: ctx, namespace, schemaID, versionID, success
+// GetByNameSpaceSchemaVersionAndSuccess provides a mock function with given fields: ctx, namespace, schemaID, versionID, success
 func (_m *NotificationEventRepository) GetByNameSpaceSchemaVersionAndSuccess(ctx context.Context, namespace string, schemaID int32, versionID string, success bool) (changedetector.NotificationEvent, error) {
 	ret := _m.Called(ctx, namespace, schemaID, versionID, success)
 
@@ -71,9 +71,9 @@ func (_m *NotificationEventRepository) GetByNameSpaceSchemaVersionAndSuccess(ctx
 	return r0, r1
 }
 
-// Update provides a mock function with given fields: ctx, ID
-func (_m *NotificationEventRepository) Update(ctx context.Context, ID string) (changedetector.NotificationEvent, error) {
-	ret := _m.Called(ctx, ID)
+// Update provides a mock function with given fields: ctx, Id, success
+func (_m *NotificationEventRepository) Update(ctx context.Context, Id string, success bool) (changedetector.NotificationEvent, error) {
+	ret := _m.Called(ctx, Id, success)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -81,17 +81,17 @@ func (_m *NotificationEventRepository) Update(ctx context.Context, ID string) (c
 
 	var r0 changedetector.NotificationEvent
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (changedetector.NotificationEvent, error)); ok {
-		return rf(ctx, ID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) (changedetector.NotificationEvent, error)); ok {
+		return rf(ctx, Id, success)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) changedetector.NotificationEvent); ok {
-		r0 = rf(ctx, ID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) changedetector.NotificationEvent); ok {
+		r0 = rf(ctx, Id, success)
 	} else {
 		r0 = ret.Get(0).(changedetector.NotificationEvent)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, ID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, bool) error); ok {
+		r1 = rf(ctx, Id, success)
 	} else {
 		r1 = ret.Error(1)
 	}

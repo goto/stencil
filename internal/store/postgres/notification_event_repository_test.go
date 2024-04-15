@@ -32,7 +32,7 @@ func TestEvent(t *testing.T) {
 	event := changedetector.NotificationEvent{
 		ID:          "abc123",
 		Type:        "SCHEMA_CHANGE_EVENT",
-		Timestamp:   time.Date(2024, 3, 15, 14, 18, 0, 0, time.UTC),
+		EventTime:   time.Date(2024, 3, 15, 14, 18, 0, 0, time.UTC),
 		NamespaceID: "gojek",
 		SchemaID:    1,
 		VersionID:   "version_id",
@@ -52,7 +52,7 @@ func TestEvent(t *testing.T) {
 			assertEvent(t, event, eventRes)
 		})
 		t.Run("get: should update the event", func(t *testing.T) {
-			eventRes, err := db.Update(ctx, "abc123")
+			eventRes, err := db.Update(ctx, "abc123", true)
 			assert.Nil(t, err)
 			assertEvent(t, event, eventRes)
 		})
@@ -63,7 +63,7 @@ func assertEvent(t *testing.T, expected, actual changedetector.NotificationEvent
 	t.Helper()
 	assert.Equal(t, expected.ID, actual.ID)
 	assert.Equal(t, expected.Type, actual.Type)
-	assert.Equal(t, expected.Timestamp, actual.Timestamp)
+	assert.Equal(t, expected.EventTime, actual.EventTime)
 	assert.Equal(t, expected.NamespaceID, actual.NamespaceID)
 	assert.Equal(t, expected.SchemaID, actual.SchemaID)
 	assert.Equal(t, expected.VersionID, actual.VersionID)
