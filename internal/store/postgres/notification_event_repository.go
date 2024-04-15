@@ -13,7 +13,7 @@ SELECT * from notification_events where namespace_id=$1 and schema_id=$2 and ver
 `
 
 const notificationEventsInsertQuery = `
-INSERT INTO notification_events (id, type, timestamp,namespace_id, schema_id, version_id, success,created_at,updated_at)
+INSERT INTO notification_events (id, type, event_time,namespace_id, schema_id, version_id, success,created_at,updated_at)
    VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now())
 RETURNING *
 `

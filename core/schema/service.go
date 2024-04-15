@@ -183,7 +183,6 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return err
 	}
 	log.Printf("successfully pushed message to kafka topic %s", schemaChangeTopic)
-	notificationEvent = createNotificationEvent(sce, request, schemaID, true)
 	if _, err := s.notificationEventRepo.Update(ctx, notificationEvent.ID, true); err != nil {
 		log.Printf("unable to insert event for namesapce %s , schema %s and version %d in DB, got error: %s", request.NamespaceID, request.SchemaName, request.Version, err.Error())
 		return err
