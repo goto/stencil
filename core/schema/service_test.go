@@ -100,6 +100,7 @@ func TestSchemaCreate(t *testing.T) {
 		producer.On("PushMessagesWithRetries", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		neRepo.On("GetByNameSpaceSchemaVersionAndSuccess", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, pgx.ErrNoRows)
 		neRepo.On("Create", mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, nil)
+		neRepo.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, nil)
 		var called bool
 		var compatibility bool
 		var cdCalled bool
