@@ -39,5 +39,6 @@ statsd:
 #Schame Change config
 schemachange:
   kafkatopic: "schema_change"
+  depth: 5
 
 

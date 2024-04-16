@@ -37,6 +37,7 @@ type StatsDConfig struct {
 // SchameChangeConfig
 type SchemaChangeConfig struct {
 	KafkaTopic string
+	Depth      int32
 }
 
 // Config Server config

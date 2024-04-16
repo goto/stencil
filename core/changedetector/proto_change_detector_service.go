@@ -1,9 +1,11 @@
 package changedetector
 
 import (
+	"container/list"
 	"context"
 	"errors"
 	"log"
+	"math"
 	"time"
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -52,8 +54,14 @@ func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeReque
 	}
 	setDirectlyImpactedSchemasAndFields(currentFds, prevFds, sce)
 	reverseDependencies := getReverseDependencies(currentFds)
+	/*
+		If depth is negative then show all impacted schemas
+	*/
+	if request.Depth < 0 {
+		request.Depth = math.MaxInt32
+	}
 	for _, schema := range sce.UpdatedSchemas {
-		appendImpactedDependents(sce, schema, getDependentImpactedSchemas(reverseDependencies, schema))
+		appendImpactedDependents(sce, schema, getDependentImpactedSchemas(reverseDependencies, schema, request.Depth))
 	}
 	return sce, nil
 }
@@ -218,20 +226,30 @@ func getReverseDependencies(fileDescriptorSet *descriptor.FileDescriptorSet) map
 	return reverseDependencies
 }
 
-func getDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string) []string {
+func getDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string, depth int32) []string {
 	visitedMessages := make(map[string]bool)
 	var dependentImpactedSchemas []string
-	findDependents(impactedSchema, reverseDependencies, visitedMessages, &dependentImpactedSchemas)
+	findDependents(impactedSchema, reverseDependencies, visitedMessages, &dependentImpactedSchemas, depth)
 	return dependentImpactedSchemas
 }
 
-func findDependents(messageName string, reverseDependencies map[string][]string, visitedMessages map[string]bool, impactedMessages *[]string) {
-	if visitedMessages[messageName] {
-		return
-	}
+func findDependents(messageName string, reverseDependencies map[string][]string, visitedMessages map[string]bool, impactedMessages *[]string, depth int32) {
+	queue := list.New()
+	queue.PushBack(messageName)
 	visitedMessages[messageName] = true
-	*impactedMessages = append(*impactedMessages, messageName)
-	for _, dependent := range reverseDependencies[messageName] {
-		findDependents(dependent, reverseDependencies, visitedMessages, impactedMessages)
+	for queue.Len() > 0 && depth >= 0 {
+		size := queue.Len()
+		for i := 0; i < size; i++ {
+			currentMessage := queue.Front().Value.(string)
+			queue.Remove(queue.Front())
+			*impactedMessages = append(*impactedMessages, currentMessage)
+			for _, neighbor := range reverseDependencies[currentMessage] {
+				if !visitedMessages[neighbor] {
+					queue.PushBack(neighbor)
+					visitedMessages[neighbor] = true
+				}
+			}
+		}
+		depth--
 	}
 }
