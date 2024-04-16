@@ -132,6 +132,7 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 		VersionID:   versionID,
 		OldData:     prevSchemaData,
 		NewData:     data,
+		Depth:       s.config.SchemaChange.Depth,
 	}
 	newCtx := context.Background()
 	go s.identifySchemaChange(newCtx, changeRequest)
