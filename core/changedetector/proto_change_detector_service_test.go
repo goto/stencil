@@ -31,6 +31,7 @@ func init() {
 		NamespaceID: "testNamespace",
 		SchemaName:  "testSchemaName",
 		Version:     int32(1),
+		Depth:       10,
 	}
 }
 
@@ -123,6 +124,7 @@ func TestIdentifySchemaChange(t *testing.T) {
 		assert.NotNil(t, actual)
 		assertSchemaChangeEvent(t, expected, actual)
 	})
+
 	t.Run("should return schema change event when enum field added inside message in latest schema", func(t *testing.T) {
 		svc, newRelic := getSvc()
 		var called bool
@@ -184,6 +186,60 @@ func TestIdentifySchemaChange(t *testing.T) {
 		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
 		actual, err := svc.IdentifySchemaChange(ctx, request)
 		expected := getSchemaChangeEvent("./testdata/output/sce_enum_updated.json")
+		assert.Nil(t, err)
+		newRelic.AssertExpectations(t)
+		assert.True(t, called)
+		assert.NotNil(t, actual)
+		assertSchemaChangeEvent(t, expected, actual)
+	})
+
+	t.Run("should return schema change event and no impacted schemas if depth is 0", func(t *testing.T) {
+		svc, newRelic := getSvc()
+		request.Depth = 0
+		var called bool
+		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_no_dependency_v1.proto"})
+		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_dependency_v1.proto"})
+		request.OldData = oldData
+		request.NewData = newData
+		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
+		actual, err := svc.IdentifySchemaChange(ctx, request)
+		expected := getSchemaChangeEvent("./testdata/output/sce_new_message_added_zero_depth.json")
+		newRelic.AssertExpectations(t)
+		assert.True(t, called)
+		assert.Nil(t, err)
+		assert.NotNil(t, actual)
+		assertSchemaChangeEvent(t, expected, actual)
+	})
+
+	t.Run("should return schema change event with depth 1", func(t *testing.T) {
+		svc, newRelic := getSvc()
+		request.Depth = 1
+		var called bool
+		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_multiple_dependency_v1.proto"})
+		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_multiple_dependency_v2.proto"})
+		request.OldData = oldData
+		request.NewData = newData
+		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
+		actual, err := svc.IdentifySchemaChange(ctx, request)
+		expected := getSchemaChangeEvent("./testdata/output/sce_new_message_added_one_depth.json")
+		newRelic.AssertExpectations(t)
+		assert.True(t, called)
+		assert.Nil(t, err)
+		assert.NotNil(t, actual)
+		assertSchemaChangeEvent(t, expected, actual)
+	})
+
+	t.Run("should return schema change event with all dependents if depth is negative", func(t *testing.T) {
+		request.Depth = -1
+		svc, newRelic := getSvc()
+		var called bool
+		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_multiple_dependency_v1.proto"})
+		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_multiple_dependency_v2.proto"})
+		request.OldData = oldData
+		request.NewData = newData
+		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
+		actual, err := svc.IdentifySchemaChange(ctx, request)
+		expected := getSchemaChangeEvent("./testdata/output/sce_new_message_added_negative_depth.json")
 		assert.Nil(t, err)
 		newRelic.AssertExpectations(t)
 		assert.True(t, called)

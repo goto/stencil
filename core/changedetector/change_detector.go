@@ -9,6 +9,7 @@ type ChangeRequest struct {
 	VersionID   string
 	OldData     []byte
 	NewData     []byte
+	Depth       int32
 }
 
 type NotificationEvent struct {
