@@ -229,20 +229,15 @@ func getReverseDependencies(fileDescriptorSet *descriptor.FileDescriptorSet) map
 func getDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string, depth int32) []string {
 	visitedMessages := make(map[string]bool)
 	var dependentImpactedSchemas []string
-	findDependents(impactedSchema, reverseDependencies, visitedMessages, &dependentImpactedSchemas, depth)
-	return dependentImpactedSchemas
-}
-
-func findDependents(messageName string, reverseDependencies map[string][]string, visitedMessages map[string]bool, impactedMessages *[]string, depth int32) {
 	queue := list.New()
-	queue.PushBack(messageName)
-	visitedMessages[messageName] = true
+	queue.PushBack(impactedSchema)
+	visitedMessages[impactedSchema] = true
 	for queue.Len() > 0 && depth >= 0 {
 		size := queue.Len()
 		for i := 0; i < size; i++ {
 			currentMessage := queue.Front().Value.(string)
 			queue.Remove(queue.Front())
-			*impactedMessages = append(*impactedMessages, currentMessage)
+			dependentImpactedSchemas = append(dependentImpactedSchemas, currentMessage)
 			for _, neighbor := range reverseDependencies[currentMessage] {
 				if !visitedMessages[neighbor] {
 					queue.PushBack(neighbor)
@@ -252,4 +247,5 @@ func findDependents(messageName string, reverseDependencies map[string][]string,
 		}
 		depth--
 	}
+	return dependentImpactedSchemas
 }
