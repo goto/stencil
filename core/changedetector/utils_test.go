@@ -1,11 +1,12 @@
 package changedetector_test
 
 import (
+	"testing"
+
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/goto/stencil/core/changedetector"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
-	"testing"
 )
 
 func TestIsMessageFieldChanged(t *testing.T) {
@@ -69,7 +70,6 @@ func TestIsMessageFieldChanged(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, changedetector.IsMessageFieldChanged(test.field1, test.field2))
-
 		})
 	}
 }
@@ -117,7 +117,6 @@ func TestIsEnumFieldChanged(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, changedetector.IsEnumFieldChanged(test.field1, test.field2))
-
 		})
 	}
 }
@@ -183,7 +182,6 @@ func TestGetImpactedMessageFields(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, changedetector.GetImpactedMessageFields(test.field1, test.field2))
-
 		})
 	}
 }

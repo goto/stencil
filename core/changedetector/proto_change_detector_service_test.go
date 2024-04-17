@@ -246,7 +246,6 @@ func TestIdentifySchemaChange(t *testing.T) {
 		assert.NotNil(t, actual)
 		assertSchemaChangeEvent(t, expected, actual)
 	})
-
 }
 
 func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta2.SchemaChangedEvent) {
