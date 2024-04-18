@@ -1,7 +1,7 @@
 NAME="github.com/goto/stencil"
 VERSION=$(shell git describe --always --tags 2>/dev/null)
 PROTON_COMMIT := "4acac160b663d97d64cab017dcb08c787eec3e1d"
-
+EXCLUDE_FILES :=./test_utils/testutils.go
 .PHONY: all build test clean dist vet proto install ui
 
 all: build
@@ -14,6 +14,15 @@ test: ui ## Run the tests
 
 coverage: ui ## Print code coverage
 	go test -race -coverprofile coverage.txt -covermode=atomic ./... & go tool cover -html=coverage.out
+
+coverage-exclude:
+	# Run tests and generate coverage profile
+	go test -race -coverprofile coverage.txt -covermode=atomic ./...
+	# Filter out coverage data for specified files
+	@for exclude_file in $(EXCLUDE_FILES); do \
+		grep -v "$$exclude_file" coverage.out > coverage.tmp && mv coverage.tmp coverage.out; \
+	done
+	go tool cover -html=coverage.out
 
 vet: ## Run the go vet tool
 	go vet ./...
