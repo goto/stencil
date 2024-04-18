@@ -31,12 +31,12 @@ kafkaProducer:
   retryinterval: 2000
   timeout: 5000
 
-#StatsD Config
+# StatsD Config
 statsd:
   address: "localhost:9090"
   prefix: "schema-change-event"
 
-#Schame Change config
+# Schema Change config
 schemachange:
   kafkatopic: "schema_change"
   depth: 5

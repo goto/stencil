@@ -1,4 +1,4 @@
-package protobuf
+package test_helper
 
 import (
 	"bytes"

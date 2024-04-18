@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/goto/stencil/core/changedetector"
-	"github.com/goto/stencil/formats/protobuf"
 	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
 	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	"github.com/goto/stencil/test_helper"
 )
 
 var request *changedetector.ChangeRequest
@@ -290,8 +290,8 @@ func getDescriptorData(t *testing.T, path string, includeImports bool, protoFile
 	t.Helper()
 	root, _ := filepath.Abs(path)
 	log.Println(t.Name())
-	targetFile := filepath.Join(t.TempDir(), protobuf.GetRandomName())
-	err := protobuf.RunProtoc(root, includeImports, targetFile, protoFiles)
+	targetFile := filepath.Join(t.TempDir(), test_helper.GetRandomName())
+	err := test_helper.RunProtoc(root, includeImports, targetFile, protoFiles)
 	assert.NoError(t, err)
 	data, err := ioutil.ReadFile(targetFile)
 	assert.NoError(t, err)

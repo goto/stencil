@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/goto/stencil/formats/protobuf"
+	"github.com/goto/stencil/test_helper"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,8 +16,8 @@ func getDescriptorData(t *testing.T, path string, includeImports bool) []byte {
 	t.Helper()
 	root, _ := filepath.Abs(path)
 	log.Println(t.Name())
-	targetFile := filepath.Join(t.TempDir(), protobuf.GetRandomName())
-	err := protobuf.RunProtoc(root, includeImports, targetFile, nil)
+	targetFile := filepath.Join(t.TempDir(), test_helper.GetRandomName())
+	err := test_helper.RunProtoc(root, includeImports, targetFile, nil)
 	assert.NoError(t, err)
 	data, err := ioutil.ReadFile(targetFile)
 	assert.NoError(t, err)

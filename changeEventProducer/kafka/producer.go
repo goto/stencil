@@ -76,8 +76,8 @@ func (kp *KafkaProducer) PushMessages(messageBytes []byte, topic string) error {
 	}
 	deliveryReport := <-deliveryChan
 	if m, ok := deliveryReport.(*kafka.Message); ok && m.TopicPartition.Error != nil {
-		log.Printf("Error in topic partitioning- %s", err.Error())
-		return err
+		log.Printf("Error in topic partitioning- %s", m.TopicPartition.Error.Error())
+		return m.TopicPartition.Error
 	}
 	return nil
 }

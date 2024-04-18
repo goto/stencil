@@ -1,6 +1,6 @@
 NAME="github.com/goto/stencil"
 VERSION=$(shell git describe --always --tags 2>/dev/null)
-PROTON_COMMIT := "<PROTON_COMMIT>"
+PROTON_COMMIT := "4acac160b663d97d64cab017dcb08c787eec3e1d"
 
 .PHONY: all build test clean dist vet proto install ui
 
