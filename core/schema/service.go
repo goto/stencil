@@ -191,9 +191,9 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return fmt.Errorf("unable to insert event for namesapce %s , schema %s and version %d in DB, got error: %s", request.NamespaceID, request.SchemaName, request.Version, err.Error())
 	}
 	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
-	retryInterval := time.Duration(s.config.KafkaProducer.RetryInterval) * time.Millisecond
-	if err := s.producer.PushMessagesWithRetries(schemaChangeTopic, sce, s.config.KafkaProducer.Retries, retryInterval); err != nil {
-		return fmt.Errorf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
+	if err := s.producer.Write(schemaChangeTopic, sce); err != nil {
+		log.Printf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
+		return err
 	}
 	log.Printf("successfully pushed message to kafka topic %s", schemaChangeTopic)
 	if _, err := s.notificationEventRepo.Update(ctx, notificationEvent.ID, true); err != nil {
