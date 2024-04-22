@@ -178,8 +178,8 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return err
 	}
 	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
-	retryInterval := time.Duration(s.config.KafkaProducer.RetryInterval) * time.Millisecond
-	if err := s.producer.PushMessagesWithRetries(schemaChangeTopic, sce, s.config.KafkaProducer.Retries, retryInterval); err != nil {
+
+	if err := s.producer.Write(schemaChangeTopic, sce); err != nil {
 		log.Printf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
 		return err
 	}
