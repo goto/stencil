@@ -192,8 +192,7 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 	}
 	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
 	if err := s.producer.Write(schemaChangeTopic, sce); err != nil {
-		log.Printf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
-		return err
+		return fmt.Errorf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
 	}
 	log.Printf("successfully pushed message to kafka topic %s", schemaChangeTopic)
 	if _, err := s.notificationEventRepo.Update(ctx, notificationEvent.ID, true); err != nil {
