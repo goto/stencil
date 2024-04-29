@@ -160,7 +160,7 @@ func TestSchemaCreate(t *testing.T) {
 		assert.True(t, dataCheck)
 	})
 
-	t.Run("should not trigger identify schema change event if enable in config is false", func(t *testing.T) {
+	t.Run("should not trigger identify schema change if the feature flag is OFF", func(t *testing.T) {
 		nsService := &mocks.NamespaceService{}
 		schemaProvider := &mocks.SchemaProvider{}
 		schemaRepo := &mocks.SchemaRepository{}
@@ -190,10 +190,7 @@ func TestSchemaCreate(t *testing.T) {
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
 		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 
-		var called bool
-		var compatibility bool
-		var metadata bool
-		var dataCheck bool
+		var called, compatibility, metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "Create Schema Info").Return(func() { called = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "Compatibility checker").Return(func() { compatibility = true })
 		newrelic.On("StartGenericSegment", mock.Anything, "GetMetaData").Return(func() { metadata = true })

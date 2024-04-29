@@ -123,11 +123,14 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 		Compatibility: compatibility,
 	}
 	versionID := getIDforSchema(nsName, schemaName, sf.ID)
-	_, prevSchemaData, dataErr := s.GetLatest(ctx, nsName, schemaName)
 	version, err := s.repo.Create(ctx, nsName, schemaName, mergedMetadata, versionID, sf)
-	schemaChangeEnabled := s.config.SchemaChange.Enable
-	if schemaChangeEnabled == true {
-		if dataErr == nil {
+	if err != nil {
+		log.Printf("got error while creating schema %s in namespace %s -> %s", schemaName, nsName, err.Error())
+	}
+
+	if s.config.SchemaChange.Enable {
+		_, prevSchemaData, err2 := s.GetLatest(ctx, nsName, schemaName)
+		if err2 == nil {
 			changeRequest := &changedetector.ChangeRequest{
 				NamespaceID: nsName,
 				SchemaName:  schemaName,
@@ -146,7 +149,7 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 				}
 			}()
 		} else {
-			log.Printf("got error while getting previous schema data %s", dataErr.Error())
+			log.Printf("got error while getting previous schema data %s", err2.Error())
 		}
 	}
 
