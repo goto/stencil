@@ -125,27 +125,31 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 	versionID := getIDforSchema(nsName, schemaName, sf.ID)
 	_, prevSchemaData, dataErr := s.GetLatest(ctx, nsName, schemaName)
 	version, err := s.repo.Create(ctx, nsName, schemaName, mergedMetadata, versionID, sf)
-	if dataErr == nil {
-		changeRequest := &changedetector.ChangeRequest{
-			NamespaceID: nsName,
-			SchemaName:  schemaName,
-			Version:     version,
-			VersionID:   versionID,
-			OldData:     prevSchemaData,
-			NewData:     data,
-			Depth:       s.config.SchemaChange.Depth,
-		}
-		go func() {
-			newCtx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
-			defer cancel()
-			err := s.identifySchemaChangeWithContext(newCtx, changeRequest)
-			if err != nil {
-				log.Printf("got error while identifying schema change event %s", err.Error())
+	schemaChangeEnabled := s.config.SchemaChange.Enable
+	if schemaChangeEnabled == true {
+		if dataErr == nil {
+			changeRequest := &changedetector.ChangeRequest{
+				NamespaceID: nsName,
+				SchemaName:  schemaName,
+				Version:     version,
+				VersionID:   versionID,
+				OldData:     prevSchemaData,
+				NewData:     data,
+				Depth:       s.config.SchemaChange.Depth,
 			}
-		}()
-	} else {
-		log.Printf("got error while getting previous schema data %s", dataErr.Error())
+			go func() {
+				newCtx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
+				defer cancel()
+				err := s.identifySchemaChangeWithContext(newCtx, changeRequest)
+				if err != nil {
+					log.Printf("got error while identifying schema change event %s", err.Error())
+				}
+			}()
+		} else {
+			log.Printf("got error while getting previous schema data %s", dataErr.Error())
+		}
 	}
+
 	return SchemaInfo{
 		Version:  version,
 		ID:       versionID,
@@ -191,6 +195,7 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return fmt.Errorf("unable to insert event for namesapce %s , schema %s and version %d in DB, got error: %s", request.NamespaceID, request.SchemaName, request.Version, err.Error())
 	}
 	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
+	fmt.Println("sce", sce)
 	if err := s.producer.Write(schemaChangeTopic, sce); err != nil {
 		return fmt.Errorf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
 	}

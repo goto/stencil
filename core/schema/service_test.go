@@ -32,7 +32,11 @@ func getSvc() (*schema.Service, *mocks.NamespaceService, *mocks.SchemaProvider, 
 	cache.On("Get", mock.Anything).Return("", false)
 	cache.On("Set", mock.Anything, mock.Anything, mock.Anything).Return(false)
 	producer := &mocks.Producer{}
-	config := &config.Config{}
+	config := &config.Config{
+		SchemaChange: config.SchemaChangeConfig{
+			Enable: true,
+		},
+	}
 	svc := schema.NewService(schemaRepo, schemaProvider, nsService, cache, newRelic, cdService, producer, config, neRepo)
 	return svc, nsService, schemaProvider, schemaRepo, newRelic, cdService, producer, neRepo
 }
@@ -111,6 +115,7 @@ func TestSchemaCreate(t *testing.T) {
 
 	t.Run("should identify schema change event", func(t *testing.T) {
 		svc, nsService, schemaProvider, schemaRepo, newrelic, cdService, producer, neRepo := getSvc()
+
 		scFile := &schema.SchemaFile{}
 		parsedSchema := &mocks.ParsedSchema{}
 		nsName := "testNamespace"
