@@ -195,7 +195,6 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return fmt.Errorf("unable to insert event for namesapce %s , schema %s and version %d in DB, got error: %s", request.NamespaceID, request.SchemaName, request.Version, err.Error())
 	}
 	schemaChangeTopic := s.config.SchemaChange.KafkaTopic
-	fmt.Println("sce", sce)
 	if err := s.producer.Write(schemaChangeTopic, sce); err != nil {
 		return fmt.Errorf("unable to push message to Kafka topic %s for schema change event %s: %s", schemaChangeTopic, sce, err.Error())
 	}
