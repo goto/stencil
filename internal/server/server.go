@@ -62,29 +62,21 @@ func Start(cfg config.Config) {
 		panic(err)
 	}
 	newRelic := &newRelic2.NewRelic{}
-	var (
-		changeDetectorService *changedetector.Service
-		statsdClient          statsd.Statter
-		producer              *kafka.Writer
-		notificationEventRepo *postgres.NotificationEventRepository
-	)
-	schemaChangeEnabled := cfg.SchemaChange.Enable
-	if schemaChangeEnabled == true {
-		changeDetectorService = changedetector.NewService(newRelic)
 
-		statsdConfig := &statsd.ClientConfig{
-			Address: cfg.StatsD.Address,
-			Prefix:  cfg.StatsD.Prefix,
-		}
-		fmt.Printf("Kafka Adress %s", cfg.KafkaProducer.BootstrapServer)
-		statsdClient, err = statsd.NewClientWithConfig(statsdConfig)
-		if err != nil {
-			log.Fatal("Error creating StatsD client:", err)
-		}
-		producer = kafka.NewWriter(cfg.KafkaProducer.BootstrapServer, cfg.KafkaProducer.Timeout, cfg.KafkaProducer.Retries, statsdClient)
+	changeDetectorService := changedetector.NewService(newRelic)
 
-		notificationEventRepo = postgres.NewNotificationEventRepository(db)
+	statsdConfig := &statsd.ClientConfig{
+		Address: cfg.StatsD.Address,
+		Prefix:  cfg.StatsD.Prefix,
 	}
+	fmt.Printf("Kafka Adress %s", cfg.KafkaProducer.BootstrapServer)
+	statsdClient, err := statsd.NewClientWithConfig(statsdConfig)
+	if err != nil {
+		log.Fatal("Error creating StatsD client:", err)
+	}
+	producer := kafka.NewWriter(cfg.KafkaProducer.BootstrapServer, cfg.KafkaProducer.Timeout, cfg.KafkaProducer.Retries, statsdClient)
+
+	notificationEventRepo := postgres.NewNotificationEventRepository(db)
 
 	schemaService := schema.NewService(schemaRepository, provider.NewSchemaProvider(), namespaceService, cache, newRelic, changeDetectorService, producer, &cfg, notificationEventRepo)
 
