@@ -10,8 +10,8 @@
   :source-paths ["src"]
   :repl-options {:init-ns stencil.core}
   :deploy-repositories [["release" {:url "https://clojars.org/repo"
-                                    :username :env/ARTIFACTORY_USERNAME
-                                    :password :env/ARTIFACTORY_PASSWORD
+                                    :username :env/CLOJURE_ARTIFACTORY_USERNAME
+                                    :password :env/CLOJURE_ARTIFACTORY_PASSWORD
                                     :sign-releases false
                                     }]
                        ]
