@@ -1,4 +1,4 @@
-(defproject com.gotocompany/stencil-clj "0.2.3-dev"
+(defproject com.gotocompany/stencil-clj "0.2.2-dev"
   :description "Stencil client for clojure"
   :url "https://github.com/goto/stencil"
   :license {:name "Apache 2.0"
