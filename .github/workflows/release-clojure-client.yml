@@ -31,5 +31,5 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         working-directory: clients/clojure
-        run: lein deploy publish
+        run: lein deploy release
 
