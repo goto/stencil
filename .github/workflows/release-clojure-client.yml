@@ -1,0 +1,29 @@
+name: Release Stencil Clojure Client
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  publish-clojure-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          distribution: adopt
+          java-version: 8
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@4.0
+        with:
+          lein: 2.9.8
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Clojure Client
+        env:
+          CLOJARE_ARTIFACTORY_USERNAME: ${{ secrets.CLOJARE_ARTIFACTORY_USERNAME }}
+          CLOJARE_ARTIFACTORY_PASSWORD: ${{ secrets.CLOJARE_ARTIFACTORY_PASSWORD }}
+        working-directory: clients/clojure
+        run: lein deploy release
+
