@@ -179,7 +179,7 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 
 	versionList, err := a.schema.ListVersions(context.Background(), namespaceID, schemaID)
 	if err != nil {
-		return fmt.Errorf("error getting version list - %s", err)
+		return fmt.Errorf("error getting version list - %s", err.Error())
 	}
 	if len(versionList) == 0 {
 		return fmt.Errorf("got empty version list")
@@ -206,12 +206,12 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 	ctx := context.Background()
 	_, fromVerData, fromVerDataError := a.schema.Get(ctx, namespaceID, schemaID, int32(fromVer))
 	if fromVerDataError != nil {
-		return fmt.Errorf("error getting data for version %v - %s", fromVer, fromVerDataError)
+		return fmt.Errorf("error getting data for version %v - %s", fromVer, fromVerDataError.Error())
 	}
 
 	_, toVerData, toVerDataError := a.schema.Get(ctx, namespaceID, schemaID, int32(toVer))
 	if toVerDataError != nil {
-		return fmt.Errorf("error getting data for version %v - %s", toVer, toVerDataError)
+		return fmt.Errorf("error getting data for version %v - %s", toVer, toVerDataError.Error())
 	}
 
 	req := &changedetector.ChangeRequest{
@@ -225,7 +225,7 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 
 	sce, err := a.changeDetector.IdentifySchemaChange(ctx, req)
 	if err != nil {
-		return fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", req.NamespaceID, req.SchemaName, req.Version, err)
+		return fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", req.NamespaceID, req.SchemaName, req.Version, err.Error())
 	}
 	log.Printf("schema change result %s", sce.String())
 	if err := a.schema.SendNotification(ctx, sce, req); err != nil {
