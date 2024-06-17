@@ -1,0 +1,1 @@
+ALTER TABLE versions DROP COLUMN IF EXISTS commit_sha;
