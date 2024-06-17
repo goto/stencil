@@ -190,8 +190,8 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 		toVersion = strconv.Itoa(int(latestVersion))
 	}
 
-	fromVer, errFrom := strconv.Atoi(fromVersion)
-	toVer, errTo := strconv.Atoi(toVersion)
+	fromVer, errFrom := strconv.ParseInt(fromVersion, 10, 32)
+	toVer, errTo := strconv.ParseInt(toVersion, 10, 32)
 
 	if errFrom != nil || errTo != nil {
 		return fmt.Errorf("invalid version format")
