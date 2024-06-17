@@ -171,15 +171,15 @@ func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersio
 }
 
 func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Request, pathParams map[string]string) error {
-	namespaceId := pathParams["namespaceId"]
-	schemaId := pathParams["schemaId"]
+	namespaceID := pathParams["namespaceId"]
+	schemaID := pathParams["schemaId"]
 
 	fromVersion := request.URL.Query().Get("from")
 	toVersion := request.URL.Query().Get("to")
 
-	versionList, err := a.schema.ListVersions(context.Background(), namespaceId, schemaId)
-	if err != nil {
-		return err
+	versionList, err := a.schema.ListVersions(context.Background(), namespaceID, schemaID)
+	if err != nil || len(versionList) == 0 {
+		return fmt.Errorf("error getting version list - %s", err)
 	}
 	latestVersion := versionList[len(versionList)-1]
 
@@ -201,19 +201,19 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 	}
 
 	ctx := context.Background()
-	_, fromVerData, fromVerDataError := a.schema.Get(ctx, namespaceId, schemaId, int32(fromVer))
+	_, fromVerData, fromVerDataError := a.schema.Get(ctx, namespaceID, schemaID, int32(fromVer))
 	if fromVerDataError != nil {
 		return fmt.Errorf("error getting data for version %v - %s", fromVer, fromVerDataError)
 	}
 
-	_, toVerData, toVerDataError := a.schema.Get(ctx, namespaceId, schemaId, int32(toVer))
+	_, toVerData, toVerDataError := a.schema.Get(ctx, namespaceID, schemaID, int32(toVer))
 	if toVerDataError != nil {
 		return fmt.Errorf("error getting data for version %v - %s", toVer, toVerDataError)
 	}
 
 	req := &changedetector.ChangeRequest{
-		NamespaceID: namespaceId,
-		SchemaName:  schemaId,
+		NamespaceID: namespaceID,
+		SchemaName:  schemaID,
 		OldData:     fromVerData,
 		NewData:     toVerData,
 		Version:     int32(toVer),
@@ -225,14 +225,9 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 		return fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", req.NamespaceID, req.SchemaName, req.Version, err)
 	}
 	log.Printf("schema change result %s", sce.String())
-	err1 := a.schema.SendNotification(ctx, sce, req)
-	if err1 != nil {
-		return err1
-	}
-	writer.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(writer).Encode(sce)
-	if err != nil {
+	if err := a.schema.SendNotification(ctx, sce, req); err != nil {
 		return err
 	}
-	return nil
+	writer.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(writer).Encode(sce)
 }

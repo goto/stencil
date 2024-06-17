@@ -193,11 +193,7 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", request.NamespaceID, request.SchemaName, request.Version, err)
 	}
 	log.Printf("schema change result %s", sce.String())
-	err1 := s.SendNotification(ctx, sce, request)
-	if err1 != nil {
-		return err1
-	}
-	return nil
+	return s.SendNotification(ctx, sce, request)
 }
 
 func (s *Service) SendNotification(ctx context.Context, sce *stencilv1beta1.SchemaChangedEvent, request *changedetector.ChangeRequest) error {
