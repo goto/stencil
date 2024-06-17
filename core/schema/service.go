@@ -193,6 +193,18 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", request.NamespaceID, request.SchemaName, request.Version, err)
 	}
 	log.Printf("schema change result %s", sce.String())
+	err1 := s.SendNotification(ctx, sce, request)
+	if err1 != nil {
+		return err1
+	}
+	return nil
+}
+
+func (s *Service) SendNotification(ctx context.Context, sce *stencilv1beta1.SchemaChangedEvent, request *changedetector.ChangeRequest) error {
+	schemaID, err := s.repo.GetSchemaID(ctx, request.NamespaceID, request.SchemaName)
+	if err != nil {
+		return errors.New(fmt.Sprintf("got error while getting schema ID from DB %s", err.Error()))
+	}
 	if len(sce.UpdatedSchemas) > 0 {
 		notificationEvent := createNotificationEvent(sce, request, schemaID, false)
 		if _, err := s.notificationEventRepo.Create(ctx, notificationEvent); err != nil {
@@ -210,7 +222,6 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 	}
 	return nil
 }
-
 func createNotificationEvent(sce *stencilv1beta1.SchemaChangedEvent, request *changedetector.ChangeRequest, schemaID int32, success bool) changedetector.NotificationEvent {
 	return changedetector.NotificationEvent{
 		ID:          sce.EventId,
