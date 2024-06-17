@@ -178,8 +178,11 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 	toVersion := request.URL.Query().Get("to")
 
 	versionList, err := a.schema.ListVersions(context.Background(), namespaceID, schemaID)
-	if err != nil || len(versionList) == 0 {
+	if err != nil {
 		return fmt.Errorf("error getting version list - %s", err)
+	}
+	if len(versionList) == 0 {
+		return fmt.Errorf("got empty version list")
 	}
 	latestVersion := versionList[len(versionList)-1]
 
