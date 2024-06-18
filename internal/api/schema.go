@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+
 	"github.com/goto/stencil/core/schema"
 	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
 func schemaToProto(s schema.Schema) *stencilv1beta1.Schema {
@@ -24,7 +25,7 @@ func schemaToProto(s schema.Schema) *stencilv1beta1.Schema {
 
 func (a *API) CreateSchema(ctx context.Context, in *stencilv1beta1.CreateSchemaRequest) (*stencilv1beta1.CreateSchemaResponse, error) {
 	metadata := &schema.Metadata{Format: in.GetFormat().String(), Compatibility: in.GetCompatibility().String()}
-	sc, err := a.schema.Create(ctx, in.NamespaceId, in.SchemaId, metadata, in.GetData())
+	sc, err := a.schema.Create(ctx, in.NamespaceId, in.SchemaId, metadata, in.GetData(), "")
 	return &stencilv1beta1.CreateSchemaResponse{
 		Version:  sc.Version,
 		Id:       sc.ID,
@@ -41,11 +42,13 @@ func (a *API) HTTPUpload(w http.ResponseWriter, req *http.Request, pathParams ma
 
 	format := req.Header.Get("X-Format")
 	compatibility := req.Header.Get("X-Compatibility")
+	sourceUrl := req.Header.Get("X-SourceUrl")
+	commitSHA := req.Header.Get("X-CommitSHA")
 
-	metadata := &schema.Metadata{Format: format, Compatibility: compatibility}
+	metadata := &schema.Metadata{Format: format, Compatibility: compatibility, SourceUrl: sourceUrl}
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]
-	sc, err := a.schema.Create(req.Context(), namespaceID, schemaName, metadata, data)
+	sc, err := a.schema.Create(req.Context(), namespaceID, schemaName, metadata, data, commitSHA)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+
 	"google.golang.org/protobuf/proto"
 
 	"github.com/goto/stencil/core/changedetector"
@@ -12,6 +13,7 @@ type Metadata struct {
 	Authority     string
 	Format        string
 	Compatibility string
+	SourceUrl     string
 }
 
 type SchemaInfo struct {
@@ -28,7 +30,7 @@ type SchemaFile struct {
 }
 
 type Repository interface {
-	Create(ctx context.Context, namespace string, schema string, metadata *Metadata, versionID string, schemaFile *SchemaFile) (version int32, err error)
+	Create(ctx context.Context, namespace string, schema string, metadata *Metadata, versionID string, schemaFile *SchemaFile, commitSHA string) (version int32, err error)
 	List(context.Context, string) ([]Schema, error)
 	ListVersions(context.Context, string, string) ([]int32, error)
 	Get(context.Context, string, string, int32) ([]byte, error)
@@ -62,6 +64,7 @@ type Schema struct {
 	Format        string
 	Compatibility string
 	Authority     string
+	SourceUrl     string
 }
 
 type ChangeDetectorService interface {

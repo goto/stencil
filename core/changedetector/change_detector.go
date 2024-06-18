@@ -10,6 +10,8 @@ type ChangeRequest struct {
 	OldData     []byte
 	NewData     []byte
 	Depth       int32
+	SourceUrl   string
+	CommitSHA   string
 }
 
 type NotificationEvent struct {
