@@ -32,6 +32,8 @@ func init() {
 		SchemaName:  "testSchemaName",
 		Version:     int32(1),
 		Depth:       10,
+		SourceUrl:   "https://source.golabs.io/engineering-platforms/hermes/esb-log-entities",
+		CommitSHA:   "bce5b348",
 	}
 }
 
@@ -256,6 +258,7 @@ func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta2.Sche
 	assert.ElementsMatch(t, expected.UpdatedSchemas, actual.UpdatedSchemas)
 	assertUpdatedFields(t, expected.UpdatedFields, actual.UpdatedFields)
 	assertImpactedSchemas(t, expected.ImpactedSchemas, actual.ImpactedSchemas)
+	assert.Equal(t, expected.Metadata, actual.Metadata)
 }
 
 func assertUpdatedFields(t *testing.T, expected, actual map[string]*stencilv1beta2.ImpactedFields) {

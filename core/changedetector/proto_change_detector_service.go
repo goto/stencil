@@ -51,6 +51,10 @@ func (s *Service) IdentifySchemaChange(ctx context.Context, request *ChangeReque
 		NamespaceName:  request.NamespaceID,
 		SchemaName:     request.SchemaName,
 		Version:        request.Version,
+		Metadata: &stencilv1beta1.Metadata{
+			SourceUrl: request.SourceUrl,
+			CommitSha: request.CommitSHA,
+		},
 	}
 	setDirectlyImpactedSchemasAndFields(currentFds, prevFds, sce)
 	reverseDependencies := getReverseDependencies(currentFds)

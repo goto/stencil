@@ -69,7 +69,7 @@ func Start(cfg config.Config) {
 		Address: cfg.StatsD.Address,
 		Prefix:  cfg.StatsD.Prefix,
 	}
-	fmt.Printf("Kafka Adress %s", cfg.KafkaProducer.BootstrapServer)
+	fmt.Printf("Kafka Address %s", cfg.KafkaProducer.BootstrapServer)
 	statsdClient, err := statsd.NewClientWithConfig(statsdConfig)
 	if err != nil {
 		log.Fatal("Error creating StatsD client:", err)
