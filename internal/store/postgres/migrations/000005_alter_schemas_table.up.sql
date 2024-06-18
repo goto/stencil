@@ -1,1 +1,0 @@
-ALTER TABLE schemas ADD COLUMN source_url VARCHAR;
