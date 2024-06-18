@@ -184,6 +184,9 @@ func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Reque
 	if len(versionList) == 0 {
 		return fmt.Errorf("got empty version list")
 	}
+	if len(versionList) == 1 {
+		return fmt.Errorf("only one version exists for schema %s", schemaID)
+	}
 	latestVersion := versionList[len(versionList)-1]
 
 	if fromVersion == "" {
