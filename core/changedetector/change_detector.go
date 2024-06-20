@@ -10,7 +10,7 @@ type ChangeRequest struct {
 	OldData     []byte
 	NewData     []byte
 	Depth       int32
-	SourceUrl   string
+	SourceURL   string
 	CommitSHA   string
 }
 

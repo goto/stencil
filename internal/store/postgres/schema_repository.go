@@ -25,7 +25,11 @@ type searchData struct {
 	Fields []string
 }
 
-func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaName string, metadata *schema.Metadata, versionID string, file *schema.SchemaFile, commitSHA string) (int32, error) {
+func (r *SchemaRepository) Create(ctx context.Context, request *schema.UpdateSchemaRequest, versionID string, commitSHA string) (int32, error) {
+	namespace := request.Namespace
+	schemaName := request.Schema
+	metadata := request.Metadata
+	file := request.SchemaFile
 	var version int32
 	err := r.db.BeginFunc(ctx, func(t pgx.Tx) error {
 		vErr := t.QueryRow(ctx, getSchemaVersionByID, versionID).Scan(&version)
@@ -36,7 +40,7 @@ func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaN
 			return vErr
 		}
 		var schemaID int32
-		if err := t.QueryRow(ctx, schemaInsertQuery, schemaName, namespace, metadata.Format, metadata.Compatibility, metadata.SourceUrl).Scan(&schemaID); err != nil {
+		if err := t.QueryRow(ctx, schemaInsertQuery, schemaName, namespace, metadata.Format, metadata.Compatibility, metadata.SourceURL).Scan(&schemaID); err != nil {
 			return err
 		}
 		if err := t.QueryRow(ctx, versionInsertQuery, schemaID, versionID, commitSHA, file.ID,

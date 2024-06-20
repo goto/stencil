@@ -69,7 +69,7 @@ func TestHTTPSchemaCreate(t *testing.T) {
 	sourceUrl := "https://source.golabs.io/asgard/data-change-management-worker"
 	commitSHA := "commit-sha"
 	body := []byte("protobuf contents")
-	metadata := &schema.Metadata{Format: format, Compatibility: compatibility, SourceUrl: sourceUrl}
+	metadata := &schema.Metadata{Format: format, Compatibility: compatibility, SourceURL: sourceUrl}
 	t.Run("should return error if schema create fails", func(t *testing.T) {
 		_, schemaSvc, _, mux, _, newrelic := setup()
 		var called bool
@@ -79,7 +79,7 @@ func TestHTTPSchemaCreate(t *testing.T) {
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/v1beta1/namespaces/%s/schemas/%s", nsName, scName), bytes.NewBuffer(body))
 		req.Header.Add("X-Format", format)
 		req.Header.Add("X-Compatibility", compatibility)
-		req.Header.Add("X-SourceUrl", sourceUrl)
+		req.Header.Add("X-SourceURL", sourceUrl)
 		req.Header.Add("X-CommitSHA", commitSHA)
 		mux.ServeHTTP(w, req)
 		assert.Equal(t, 500, w.Code)
@@ -97,7 +97,7 @@ func TestHTTPSchemaCreate(t *testing.T) {
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/v1beta1/namespaces/%s/schemas/%s", nsName, scName), bytes.NewBuffer(body))
 		req.Header.Add("X-Format", format)
 		req.Header.Add("X-Compatibility", compatibility)
-		req.Header.Add("X-SourceUrl", sourceUrl)
+		req.Header.Add("X-SourceURL", sourceUrl)
 		req.Header.Add("X-CommitSHA", commitSHA)
 		mux.ServeHTTP(w, req)
 		assert.Equal(t, 201, w.Code)

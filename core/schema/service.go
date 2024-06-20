@@ -120,11 +120,17 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 	mergedMetadata := &Metadata{
 		Format:        format,
 		Compatibility: compatibility,
-		SourceUrl:     metadata.SourceUrl,
+		SourceURL:     metadata.SourceURL,
 	}
 	versionID := getIDforSchema(nsName, schemaName, sf.ID)
 	_, prevSchemaData, err2 := s.GetLatest(ctx, nsName, schemaName)
-	version, err := s.repo.Create(ctx, nsName, schemaName, mergedMetadata, versionID, sf, commitSHA)
+	request := &UpdateSchemaRequest{
+		Namespace:  nsName,
+		Schema:     schemaName,
+		Metadata:   mergedMetadata,
+		SchemaFile: sf,
+	}
+	version, err := s.repo.Create(ctx, request, versionID, commitSHA)
 	if err != nil {
 		log.Printf("got error while creating schema %s in namespace %s -> %s", schemaName, nsName, err.Error())
 	}
@@ -139,7 +145,7 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 				OldData:     prevSchemaData,
 				NewData:     data,
 				Depth:       s.config.SchemaChange.Depth,
-				SourceUrl:   metadata.SourceUrl,
+				SourceURL:   metadata.SourceURL,
 				CommitSHA:   commitSHA,
 			}
 			go func() {

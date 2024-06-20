@@ -37,28 +37,36 @@ func TestSchema(t *testing.T) {
 		assert.Nil(t, err)
 		meta := &schema.Metadata{
 			Format:    "avro",
-			SourceUrl: "source-url",
+			SourceURL: "source-url",
 		}
 		commitSHA := "commit-sha"
+		request := &schema.UpdateSchemaRequest{
+			Namespace: n.ID,
+			Schema:    "sName",
+			Metadata:  meta,
+		}
 		t.Run("create: should create schema", func(t *testing.T) {
-			versionNumber, err := db.Create(ctx, n.ID, "sName", meta, "uuid-1", &schema.SchemaFile{ID: "t1", Data: []byte("testdata")}, commitSHA)
+			request.SchemaFile = &schema.SchemaFile{ID: "t1", Data: []byte("testdata")}
+			versionNumber, err := db.Create(ctx, request, "uuid-1", commitSHA)
 			assert.Nil(t, err)
 			assert.Equal(t, int32(1), versionNumber)
 		})
 		t.Run("create: should increment version number on new schema", func(t *testing.T) {
-			versionNumber, err := db.Create(ctx, n.ID, "sName", meta, "uuid-2", &schema.SchemaFile{ID: "t2", Data: []byte("testdata-2")}, commitSHA)
+			request.SchemaFile = &schema.SchemaFile{ID: "t2", Data: []byte("testdata-2")}
+			versionNumber, err := db.Create(ctx, request, "uuid-2", commitSHA)
 			assert.Nil(t, err)
 			assert.Equal(t, int32(2), versionNumber)
 		})
 		t.Run("create: should return same version number if schema is same", func(t *testing.T) {
-			versionNumber, err := db.Create(ctx, n.ID, "sName", meta, "uuid-1", &schema.SchemaFile{ID: "t1", Data: []byte("testdata")}, commitSHA)
+			request.SchemaFile = &schema.SchemaFile{ID: "t1", Data: []byte("testdata")}
+			versionNumber, err := db.Create(ctx, request, "uuid-1", commitSHA)
 			assert.Nil(t, err)
 			assert.Equal(t, int32(1), versionNumber)
 		})
 		t.Run("list_schemas: should return schema", func(t *testing.T) {
 			schemaList, err := db.List(ctx, "testschema")
 			assert.Nil(t, err)
-			assert.Equal(t, []schema.Schema{{Name: "sName", Format: "avro", Compatibility: "", Authority: "", SourceUrl: "source-url"}}, schemaList)
+			assert.Equal(t, []schema.Schema{{Name: "sName", Format: "avro", Compatibility: "", Authority: "", SourceURL: "source-url"}}, schemaList)
 		})
 		t.Run("list_versions: should return versions for specified schema", func(t *testing.T) {
 			schemaList, err := db.ListVersions(ctx, "testschema", "sName")
@@ -79,7 +87,7 @@ func TestSchema(t *testing.T) {
 			actual, err := db.GetMetadata(ctx, n.ID, "sName")
 			assert.Nil(t, err)
 			assert.Equal(t, meta.Format, actual.Format)
-			assert.Equal(t, meta.SourceUrl, actual.SourceUrl)
+			assert.Equal(t, meta.SourceURL, actual.SourceURL)
 		})
 		t.Run("updateMetadata: should update metadata", func(t *testing.T) {
 			actual, err := db.UpdateMetadata(ctx, n.ID, "sName", &schema.Metadata{Compatibility: "FULL"})

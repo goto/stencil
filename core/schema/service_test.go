@@ -98,7 +98,7 @@ func TestSchemaCreate(t *testing.T) {
 		schemaProvider.On("ParseSchema", "protobuf", data).Return(parsedSchema, nil)
 		schemaRepo.On("GetLatestVersion", mock.Anything, nsName, "a").Return(int32(2), store.NoRowsErr)
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
-		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
+		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 		var called bool
 		var compatibility bool
 		newrelic.On("StartGenericSegment", mock.Anything, "Create Schema Info").Return(func() { called = true })
@@ -125,7 +125,7 @@ func TestSchemaCreate(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, nsName, "a", int32(3)).Return(data, nil)
 		schemaRepo.On("GetMetadata", mock.Anything, nsName, "a").Return(&schema.Metadata{Format: "protobuf"}, nil)
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
-		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
+		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 		schemaRepo.On("GetSchemaID", mock.Anything, nsName, "a").Return(int32(1), nil)
 		sce := &stencilv1beta2.SchemaChangedEvent{
 			UpdatedSchemas: []string{"a,b"},
@@ -175,7 +175,7 @@ func TestSchemaCreate(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, nsName, "a", int32(3)).Return(data, nil)
 		schemaRepo.On("GetMetadata", mock.Anything, nsName, "a").Return(&schema.Metadata{Format: "protobuf"}, nil)
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
-		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
+		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 		schemaRepo.On("GetSchemaID", mock.Anything, nsName, "a").Return(int32(1), nil)
 		cdService.On("IdentifySchemaChange", mock.Anything, mock.Anything).Return(&stencilv1beta2.SchemaChangedEvent{}, nil)
 		neRepo.On("GetByNameSpaceSchemaVersionAndSuccess", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, pgx.ErrNoRows)
@@ -234,7 +234,7 @@ func TestSchemaCreate(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, nsName, "a", int32(3)).Return(data, nil)
 		schemaRepo.On("GetMetadata", mock.Anything, nsName, "a").Return(&schema.Metadata{Format: "protobuf"}, nil)
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
-		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
+		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 
 		var called, compatibility, metadata, dataCheck bool
 		newrelic.On("StartGenericSegment", mock.Anything, "Create Schema Info").Return(func() { called = true })

@@ -14,9 +14,9 @@ type SchemaRepository struct {
 	mock.Mock
 }
 
-// Create provides a mock function with given fields: ctx, namespace, _a2, metadata, versionID, schemaFile, commitSHA
-func (_m *SchemaRepository) Create(ctx context.Context, namespace string, _a2 string, metadata *schema.Metadata, versionID string, schemaFile *schema.SchemaFile, commitSHA string) (int32, error) {
-	ret := _m.Called(ctx, namespace, _a2, metadata, versionID, schemaFile, commitSHA)
+// Create provides a mock function with given fields: ctx, request, versionID, commitSHA
+func (_m *SchemaRepository) Create(ctx context.Context, request *schema.UpdateSchemaRequest, versionID string, commitSHA string) (int32, error) {
+	ret := _m.Called(ctx, request, versionID, commitSHA)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
@@ -24,17 +24,17 @@ func (_m *SchemaRepository) Create(ctx context.Context, namespace string, _a2 st
 
 	var r0 int32
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *schema.Metadata, string, *schema.SchemaFile, string) (int32, error)); ok {
-		return rf(ctx, namespace, _a2, metadata, versionID, schemaFile, commitSHA)
+	if rf, ok := ret.Get(0).(func(context.Context, *schema.UpdateSchemaRequest, string, string) (int32, error)); ok {
+		return rf(ctx, request, versionID, commitSHA)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *schema.Metadata, string, *schema.SchemaFile, string) int32); ok {
-		r0 = rf(ctx, namespace, _a2, metadata, versionID, schemaFile, commitSHA)
+	if rf, ok := ret.Get(0).(func(context.Context, *schema.UpdateSchemaRequest, string, string) int32); ok {
+		r0 = rf(ctx, request, versionID, commitSHA)
 	} else {
 		r0 = ret.Get(0).(int32)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, *schema.Metadata, string, *schema.SchemaFile, string) error); ok {
-		r1 = rf(ctx, namespace, _a2, metadata, versionID, schemaFile, commitSHA)
+	if rf, ok := ret.Get(1).(func(context.Context, *schema.UpdateSchemaRequest, string, string) error); ok {
+		r1 = rf(ctx, request, versionID, commitSHA)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -284,9 +284,9 @@ func (_m *SchemaRepository) UpdateMetadata(_a0 context.Context, _a1 string, _a2 
 	return r0, r1
 }
 
-// NewRepository creates a new instance of SchemaRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// NewSchemaRepository creates a new instance of SchemaRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
-func NewRepository(t interface {
+func NewSchemaRepository(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *SchemaRepository {
