@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/goto/stencil/core/changedetector"
 	"net/http"
 	"strconv"
 
@@ -41,34 +40,28 @@ type SchemaService interface {
 	UpdateMetadata(ctx context.Context, namespace, schemaName string, meta *schema.Metadata) (*schema.Metadata, error)
 	List(ctx context.Context, namespaceID string) ([]schema.Schema, error)
 	ListVersions(ctx context.Context, namespaceID string, schemaName string) ([]int32, error)
-	SendNotification(ctx context.Context, sce *stencilv1beta2.SchemaChangedEvent, request *changedetector.ChangeRequest) error
+	DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta2.SchemaChangedEvent, error)
 }
 
 type SearchService interface {
 	Search(ctx context.Context, req *search.SearchRequest) (*search.SearchResponse, error)
 }
 
-type ChangeDetectorService interface {
-	IdentifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) (*stencilv1beta2.SchemaChangedEvent, error)
-}
-
 type API struct {
 	stencilv1beta1.UnimplementedStencilServiceServer
 	grpc_health_v1.UnimplementedHealthServer
-	namespace      NamespaceService
-	schema         SchemaService
-	search         SearchService
-	changeDetector ChangeDetectorService
-	newrelic       newrelic2.Service
+	namespace NamespaceService
+	schema    SchemaService
+	search    SearchService
+	newrelic  newrelic2.Service
 }
 
-func NewAPI(namespace NamespaceService, schema SchemaService, search SearchService, changeDetector ChangeDetectorService, nr newrelic2.Service) *API {
+func NewAPI(namespace NamespaceService, schema SchemaService, search SearchService, nr newrelic2.Service) *API {
 	return &API{
-		namespace:      namespace,
-		schema:         schema,
-		search:         search,
-		changeDetector: changeDetector,
-		newrelic:       nr,
+		namespace: namespace,
+		schema:    schema,
+		search:    search,
+		newrelic:  nr,
 	}
 }
 
@@ -81,7 +74,7 @@ func (a *API) RegisterSchemaHandlers(mux *runtime.ServeMux, app *newrelic.Applic
 	mux.HandlePath(wrapHandler(app, "GET", "/v1beta1/namespaces/{namespace}/schemas/{name}", handleSchemaResponse(mux, a.HTTPLatestSchema)))
 	mux.HandlePath(wrapHandler(app, "POST", "/v1beta1/namespaces/{namespace}/schemas/{name}", wrapErrHandler(mux, a.HTTPUpload)))
 	mux.HandlePath(wrapHandler(app, "POST", "/v1beta1/namespaces/{namespace}/schemas/{name}/check", wrapErrHandler(mux, a.HTTPCheckCompatibility)))
-	mux.HandlePath(wrapHandler(app, "GET", "/v1beta1/schema/detect-change/{namespaceId}/{schemaId}", wrapErrHandler(mux, a.DetectSchemaChange)))
+	mux.HandlePath(wrapHandler(app, "GET", "/v1beta1/schema/detect-change/{namespaceId}/{schemaName}", wrapErrHandler(mux, a.DetectSchemaChange)))
 }
 
 func handleSchemaResponse(mux *runtime.ServeMux, getSchemaFn getSchemaData) runtime.HandlerFunc {

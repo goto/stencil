@@ -5,11 +5,8 @@ package mocks
 import (
 	context "context"
 
-	changedetector "github.com/goto/stencil/core/changedetector"
-
-	mock "github.com/stretchr/testify/mock"
-
 	schema "github.com/goto/stencil/core/schema"
+	mock "github.com/stretchr/testify/mock"
 
 	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
@@ -99,6 +96,36 @@ func (_m *SchemaService) DeleteVersion(ctx context.Context, namespace string, sc
 	}
 
 	return r0
+}
+
+// DetectSchemaChange provides a mock function with given fields: namespace, schemaName, fromVersion, toVersion, depth
+func (_m *SchemaService) DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta1.SchemaChangedEvent, error) {
+	ret := _m.Called(namespace, schemaName, fromVersion, toVersion, depth)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DetectSchemaChange")
+	}
+
+	var r0 *stencilv1beta1.SchemaChangedEvent
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string) (*stencilv1beta1.SchemaChangedEvent, error)); ok {
+		return rf(namespace, schemaName, fromVersion, toVersion, depth)
+	}
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string) *stencilv1beta1.SchemaChangedEvent); ok {
+		r0 = rf(namespace, schemaName, fromVersion, toVersion, depth)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*stencilv1beta1.SchemaChangedEvent)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, string, string, string, string) error); ok {
+		r1 = rf(namespace, schemaName, fromVersion, toVersion, depth)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Get provides a mock function with given fields: ctx, namespace, schemaName, version
@@ -267,24 +294,6 @@ func (_m *SchemaService) ListVersions(ctx context.Context, namespaceID string, s
 	}
 
 	return r0, r1
-}
-
-// SendNotification provides a mock function with given fields: ctx, sce, request
-func (_m *SchemaService) SendNotification(ctx context.Context, sce *stencilv1beta1.SchemaChangedEvent, request *changedetector.ChangeRequest) error {
-	ret := _m.Called(ctx, sce, request)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SendNotification")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *stencilv1beta1.SchemaChangedEvent, *changedetector.ChangeRequest) error); ok {
-		r0 = rf(ctx, sce, request)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // UpdateMetadata provides a mock function with given fields: ctx, namespace, schemaName, meta

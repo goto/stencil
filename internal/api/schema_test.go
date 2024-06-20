@@ -17,7 +17,7 @@ func TestHTTPGetSchema(t *testing.T) {
 	nsName := "namespace1"
 	schemaName := "scName"
 	t.Run("should validate version number", func(t *testing.T) {
-		_, _, _, mux, _, _, newrelic := setup()
+		_, _, _, mux, _, newrelic := setup()
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1beta1/namespaces/%s/schemas/%s/versions/invalidNumber", nsName, schemaName), nil)
 		var called bool
@@ -30,7 +30,7 @@ func TestHTTPGetSchema(t *testing.T) {
 	})
 	t.Run("should return http error if getSchema fails", func(t *testing.T) {
 		version := int32(2)
-		_, schemaSvc, _, mux, _, _, newrelic := setup()
+		_, schemaSvc, _, mux, _, newrelic := setup()
 		var called bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetSchema").Return(func() { called = true })
 		schemaSvc.On("Get", mock.Anything, nsName, schemaName, version).Return(nil, nil, errors.New("get error"))
@@ -45,7 +45,7 @@ func TestHTTPGetSchema(t *testing.T) {
 	t.Run("should return octet-stream content type for protobuf schema", func(t *testing.T) {
 		version := int32(2)
 		data := []byte("test data")
-		_, schemaSvc, _, mux, _, _, newrelic := setup()
+		_, schemaSvc, _, mux, _, newrelic := setup()
 		var called bool
 		newrelic.On("StartGenericSegment", mock.Anything, "GetSchema").Return(func() { called = true })
 		schemaSvc.On("Get", mock.Anything, nsName, schemaName, version).Return(&schema.Metadata{Format: "FORMAT_PROTOBUF"}, data, nil)
@@ -67,7 +67,7 @@ func TestHTTPSchemaCreate(t *testing.T) {
 	compatibility := "FULL"
 	body := []byte("protobuf contents")
 	t.Run("should return error if schema create fails", func(t *testing.T) {
-		_, schemaSvc, _, mux, _, _, newrelic := setup()
+		_, schemaSvc, _, mux, _, newrelic := setup()
 		var called bool
 		newrelic.On("StartGenericSegment", mock.Anything, "UploadSchema").Return(func() { called = true })
 		schemaSvc.On("Create", mock.Anything, nsName, scName, &schema.Metadata{Format: format, Compatibility: compatibility}, body).Return(schema.SchemaInfo{}, errors.New("create error"))
@@ -82,7 +82,7 @@ func TestHTTPSchemaCreate(t *testing.T) {
 		assert.True(t, called)
 	})
 	t.Run("should return schemaInfo in JSON after create", func(t *testing.T) {
-		_, schemaSvc, _, mux, _, _, newrelic := setup()
+		_, schemaSvc, _, mux, _, newrelic := setup()
 		scInfo := schema.SchemaInfo{ID: "someID", Version: int32(2)}
 		var called bool
 		newrelic.On("StartGenericSegment", mock.Anything, "UploadSchema").Return(func() { called = true })

@@ -4,10 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"github.com/goto/stencil/core/changedetector"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -172,66 +169,13 @@ func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersio
 
 func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Request, pathParams map[string]string) error {
 	namespaceID := pathParams["namespaceId"]
-	schemaID := pathParams["schemaId"]
+	schemaName := pathParams["schemaName"]
 
-	fromVersion := request.URL.Query().Get("from")
-	toVersion := request.URL.Query().Get("to")
+	requestQuery := request.URL.Query()
+	fromVersion, toVersion, depth := requestQuery.Get("from"), requestQuery.Get("to"), requestQuery.Get("depth")
 
-	versionList, err := a.schema.ListVersions(context.Background(), namespaceID, schemaID)
+	sce, err := a.schema.DetectSchemaChange(namespaceID, schemaName, fromVersion, toVersion, depth)
 	if err != nil {
-		return fmt.Errorf("error getting version list - %s", err.Error())
-	}
-	if len(versionList) == 0 {
-		return fmt.Errorf("got empty version list")
-	}
-	if len(versionList) == 1 {
-		return fmt.Errorf("only one version exists for schema %s", schemaID)
-	}
-	latestVersion := versionList[len(versionList)-1]
-
-	if fromVersion == "" {
-		fromVersion = strconv.Itoa(int(latestVersion - 1))
-	}
-	if toVersion == "" {
-		toVersion = strconv.Itoa(int(latestVersion))
-	}
-
-	fromVer, errFrom := strconv.ParseInt(fromVersion, 10, 32)
-	toVer, errTo := strconv.ParseInt(toVersion, 10, 32)
-
-	if errFrom != nil || errTo != nil {
-		return fmt.Errorf("invalid version format")
-	}
-	if fromVer >= toVer {
-		return fmt.Errorf("'from' should be less than 'to'")
-	}
-
-	ctx := context.Background()
-	_, fromVerData, fromVerDataError := a.schema.Get(ctx, namespaceID, schemaID, int32(fromVer))
-	if fromVerDataError != nil {
-		return fmt.Errorf("error getting data for version %v - %s", fromVer, fromVerDataError.Error())
-	}
-
-	_, toVerData, toVerDataError := a.schema.Get(ctx, namespaceID, schemaID, int32(toVer))
-	if toVerDataError != nil {
-		return fmt.Errorf("error getting data for version %v - %s", toVer, toVerDataError.Error())
-	}
-
-	req := &changedetector.ChangeRequest{
-		NamespaceID: namespaceID,
-		SchemaName:  schemaID,
-		OldData:     fromVerData,
-		NewData:     toVerData,
-		Version:     int32(toVer),
-		Depth:       -1,
-	}
-
-	sce, err := a.changeDetector.IdentifySchemaChange(ctx, req)
-	if err != nil {
-		return fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", req.NamespaceID, req.SchemaName, req.Version, err.Error())
-	}
-	log.Printf("schema change result %s", sce.String())
-	if err := a.schema.SendNotification(ctx, sce, req); err != nil {
 		return err
 	}
 	writer.Header().Set("Content-Type", "application/json")
