@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 
 func getEventStore(t *testing.T) *postgres.NotificationEventRepository {
 	t.Helper()
-	connectionString := "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+	connectionString := os.Getenv("TEST_DB_CONNECTIONSTRING")
 	if connectionString == "" {
 		t.Skip("Skipping test since DB info not available")
 		return nil
