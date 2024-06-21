@@ -8,9 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/goto/stencil/core/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/goto/stencil/core/schema"
 )
 
 func TestHTTPGetSchema(t *testing.T) {
@@ -65,16 +66,21 @@ func TestHTTPSchemaCreate(t *testing.T) {
 	scName := "schemaName"
 	format := "PROTOBUF"
 	compatibility := "FULL"
+	sourceUrl := "https://source.golabs.io/asgard/data-change-management-worker"
+	commitSHA := "commit-sha"
 	body := []byte("protobuf contents")
+	metadata := &schema.Metadata{Format: format, Compatibility: compatibility, SourceURL: sourceUrl}
 	t.Run("should return error if schema create fails", func(t *testing.T) {
 		_, schemaSvc, _, mux, _, newrelic := setup()
 		var called bool
 		newrelic.On("StartGenericSegment", mock.Anything, "UploadSchema").Return(func() { called = true })
-		schemaSvc.On("Create", mock.Anything, nsName, scName, &schema.Metadata{Format: format, Compatibility: compatibility}, body).Return(schema.SchemaInfo{}, errors.New("create error"))
+		schemaSvc.On("Create", mock.Anything, nsName, scName, metadata, body, commitSHA).Return(schema.SchemaInfo{}, errors.New("create error"))
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/v1beta1/namespaces/%s/schemas/%s", nsName, scName), bytes.NewBuffer(body))
 		req.Header.Add("X-Format", format)
 		req.Header.Add("X-Compatibility", compatibility)
+		req.Header.Add("X-SourceURL", sourceUrl)
+		req.Header.Add("X-CommitSHA", commitSHA)
 		mux.ServeHTTP(w, req)
 		assert.Equal(t, 500, w.Code)
 		schemaSvc.AssertExpectations(t)
@@ -86,11 +92,13 @@ func TestHTTPSchemaCreate(t *testing.T) {
 		scInfo := schema.SchemaInfo{ID: "someID", Version: int32(2)}
 		var called bool
 		newrelic.On("StartGenericSegment", mock.Anything, "UploadSchema").Return(func() { called = true })
-		schemaSvc.On("Create", mock.Anything, nsName, scName, &schema.Metadata{Format: format, Compatibility: compatibility}, body).Return(scInfo, nil)
+		schemaSvc.On("Create", mock.Anything, nsName, scName, metadata, body, commitSHA).Return(scInfo, nil)
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", fmt.Sprintf("/v1beta1/namespaces/%s/schemas/%s", nsName, scName), bytes.NewBuffer(body))
 		req.Header.Add("X-Format", format)
 		req.Header.Add("X-Compatibility", compatibility)
+		req.Header.Add("X-SourceURL", sourceUrl)
+		req.Header.Add("X-CommitSHA", commitSHA)
 		mux.ServeHTTP(w, req)
 		assert.Equal(t, 201, w.Code)
 		assert.JSONEq(t, `{"id": "someID", "location": "", "version": 2}`, w.Body.String())

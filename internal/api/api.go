@@ -8,13 +8,14 @@ import (
 
 	newrelic2 "github.com/goto/stencil/pkg/newrelic"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/newrelic/go-agent/v3/newrelic"
+	"google.golang.org/grpc/health/grpc_health_v1"
+
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/core/schema"
 	"github.com/goto/stencil/core/search"
 	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/newrelic/go-agent/v3/newrelic"
-	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type getSchemaData func(http.ResponseWriter, *http.Request, map[string]string) (*schema.Metadata, []byte, error)
@@ -30,7 +31,7 @@ type NamespaceService interface {
 
 type SchemaService interface {
 	CheckCompatibility(ctx context.Context, nsName, schemaName, compatibility string, data []byte) error
-	Create(ctx context.Context, nsName string, schemaName string, metadata *schema.Metadata, data []byte) (schema.SchemaInfo, error)
+	Create(ctx context.Context, nsName string, schemaName string, metadata *schema.Metadata, data []byte, commitSHA string) (schema.SchemaInfo, error)
 	Get(ctx context.Context, namespace string, schemaName string, version int32) (*schema.Metadata, []byte, error)
 	Delete(ctx context.Context, namespace string, schemaName string) error
 	DeleteVersion(ctx context.Context, namespace string, schemaName string, version int32) error
