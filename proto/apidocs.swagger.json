@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "gotocompany/stencil/v1beta1/stencil.proto",
+    "title": "proto/v1beta1/stencil.proto",
     "version": "0.1.4"
   },
   "tags": [
@@ -553,6 +553,9 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "sourceUrl": {
+          "type": "string"
         }
       }
     },
@@ -667,6 +670,9 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "sourceUrl": {
+          "type": "string"
         }
       }
     },

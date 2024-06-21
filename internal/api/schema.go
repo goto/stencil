@@ -11,6 +11,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	"github.com/goto/stencil/core/schema"
+	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 )
 
@@ -23,9 +24,13 @@ func schemaToProto(s schema.Schema) *stencilv1beta1.Schema {
 	}
 }
 
-func (a *API) CreateSchema(ctx context.Context, in *stencilv1beta1.CreateSchemaRequest) (*stencilv1beta1.CreateSchemaResponse, error) {
-	metadata := &schema.Metadata{Format: in.GetFormat().String(), Compatibility: in.GetCompatibility().String()}
-	sc, err := a.schema.Create(ctx, in.NamespaceId, in.SchemaId, metadata, in.GetData(), "")
+func (a *API) CreateSchema(ctx context.Context, in *stencilv1beta2.CreateSchemaRequest) (*stencilv1beta1.CreateSchemaResponse, error) {
+	metadata := &schema.Metadata{
+		Format:        in.GetFormat().String(),
+		Compatibility: in.GetCompatibility().String(),
+		SourceURL:     in.GetSourceUrl(),
+	}
+	sc, err := a.schema.Create(ctx, in.NamespaceId, in.SchemaId, metadata, in.GetData(), in.GetCommitSha())
 	return &stencilv1beta1.CreateSchemaResponse{
 		Version:  sc.Version,
 		Id:       sc.ID,
