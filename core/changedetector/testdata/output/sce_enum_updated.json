@@ -18,5 +18,9 @@
       ]
     }
   },
-  "version": 1
+  "version": 1,
+  "metadata": {
+    "source_url": "https://source.golabs.io/engineering-platforms/hermes/esb-log-entities",
+    "commit_sha": "bce5b348"
+  }
 }
