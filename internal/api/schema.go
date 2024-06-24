@@ -40,12 +40,12 @@ func (a *API) HTTPUpload(w http.ResponseWriter, req *http.Request, pathParams ma
 		return err
 	}
 
-	format := req.Header.Get("X-Format")
-	compatibility := req.Header.Get("X-Compatibility")
-	sourceUrl := req.Header.Get("X-SourceURL")
-	commitSHA := req.Header.Get("X-CommitSHA")
+	format := req.Header.Get(HeaderFormat)
+	compatibility := req.Header.Get(HeaderCompatibility)
+	sourceURL := req.Header.Get(HeaderSourceUrl)
+	commitSHA := req.Header.Get(HeaderCommitSHA)
 
-	metadata := &schema.Metadata{Format: format, Compatibility: compatibility, SourceURL: sourceUrl}
+	metadata := &schema.Metadata{Format: format, Compatibility: compatibility, SourceURL: sourceURL}
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]
 	sc, err := a.schema.Create(req.Context(), namespaceID, schemaName, metadata, data, commitSHA)
