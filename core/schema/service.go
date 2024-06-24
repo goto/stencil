@@ -194,13 +194,16 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 		return fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", request.NamespaceID, request.SchemaName, request.Version, err)
 	}
 	log.Printf("schema change result %s", sce.String())
-	return s.sendNotification(ctx, sce, request)
+	return s.sendNotification(ctx, sce, request, schemaID)
 }
 
-func (s *Service) sendNotification(ctx context.Context, sce *stencilv1beta1.SchemaChangedEvent, request *changedetector.ChangeRequest) error {
-	schemaID, err := s.repo.GetSchemaID(ctx, request.NamespaceID, request.SchemaName)
-	if err != nil {
-		return fmt.Errorf("got error while getting schema ID from DB %s", err.Error())
+func (s *Service) sendNotification(ctx context.Context, sce *stencilv1beta1.SchemaChangedEvent, request *changedetector.ChangeRequest, schemaID int32) error {
+	var err error
+	if schemaID == -1 {
+		schemaID, err = s.repo.GetSchemaID(ctx, request.NamespaceID, request.SchemaName)
+		if err != nil {
+			return fmt.Errorf("got error while getting schema ID from DB %s", err.Error())
+		}
 	}
 	if len(sce.UpdatedSchemas) > 0 {
 		notificationEvent := createNotificationEvent(sce, request, schemaID, false)
@@ -289,56 +292,29 @@ func getIDforSchema(ns, schema, dataUUID string) string {
 
 func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta1.SchemaChangedEvent, error) {
 	ctx := context.Background()
-	if fromVersion == "" || toVersion == "" {
-		fmt.Printf("schema service name %s", schemaName)
-		latestVersion, err := s.repo.GetLatestVersion(ctx, namespace, schemaName)
-		if err != nil {
-			return nil, fmt.Errorf("error getting latest version - %s", err.Error())
-		}
-		if latestVersion == 1 {
-			return nil, fmt.Errorf("only one version exists for schema - %s", schemaName)
-		}
-		if fromVersion == "" {
-			fromVersion = strconv.Itoa(int(latestVersion - 1))
-		}
-		if toVersion == "" {
-			toVersion = strconv.Itoa(int(latestVersion))
-		}
+	fmt.Printf("fromVersion in request - %s", fromVersion)
+	fmt.Printf("toVersion in request- %s", toVersion)
+	fromVer, toVer, err := s.getVersions(ctx, namespace, schemaName, fromVersion, toVersion)
+	if err != nil {
+		return nil, err
 	}
+	fmt.Printf("fromVersion after conversion - %d", fromVer)
+	fmt.Printf("toVersion after conversion- %d", toVer)
 	if depth == "" {
 		depth = strconv.Itoa(-1)
 	}
-
-	fmt.Printf("fromVersion - %s", fromVersion)
-	fmt.Printf("toVersion - %s", toVersion)
-
-	fromVer, errFrom := strconv.ParseInt(fromVersion, 10, 32)
-	toVer, errTo := strconv.ParseInt(toVersion, 10, 32)
 	depth64, errDepth := strconv.ParseInt(depth, 10, 32)
-
-	fmt.Printf("fromVersion - %v", fromVer)
-	fmt.Printf("toVersion - %v", toVer)
-
-	if errFrom != nil || errTo != nil {
-		return nil, fmt.Errorf("invalid version format")
-	}
 	if errDepth != nil {
 		return nil, fmt.Errorf("invalid depth")
 	}
-	if fromVer >= toVer {
-		return nil, fmt.Errorf("'from' should be less than 'to'")
-	}
-
 	_, fromVerData, fromVerDataError := s.Get(ctx, namespace, schemaName, int32(fromVer))
 	if fromVerDataError != nil {
-		return nil, fmt.Errorf("error getting data for version %v - %s", fromVer, fromVerDataError.Error())
+		return nil, fmt.Errorf("error getting data for version %d - %s", fromVer, fromVerDataError.Error())
 	}
-
 	_, toVerData, toVerDataError := s.Get(ctx, namespace, schemaName, int32(toVer))
 	if toVerDataError != nil {
-		return nil, fmt.Errorf("error getting data for version %v - %s", toVer, toVerDataError.Error())
+		return nil, fmt.Errorf("error getting data for version %d - %s", toVer, toVerDataError.Error())
 	}
-
 	req := &changedetector.ChangeRequest{
 		NamespaceID: namespace,
 		SchemaName:  schemaName,
@@ -347,13 +323,51 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 		Version:     int32(toVer),
 		Depth:       int32(depth64),
 	}
-
 	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, req)
 	if err != nil {
 		return sce, fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", req.NamespaceID, req.SchemaName, req.Version, err.Error())
 	}
-	if err := s.sendNotification(ctx, sce, req); err != nil {
+	if err := s.sendNotification(ctx, sce, req, -1); err != nil {
 		return sce, err
 	}
 	return sce, nil
+}
+
+func (s *Service) getVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int, int, error) {
+	var toVer int
+	var fromVer int
+	var err error
+	if toVersion == "" {
+		var toVer32 int32
+		toVer32, err = s.repo.GetLatestVersion(ctx, namespace, schemaName)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error getting latest version - %s", err.Error())
+		}
+		if toVer32 == 1 {
+			return 0, 0, fmt.Errorf("only one version exists for schema - %s", schemaName)
+		}
+		toVer = int(toVer32)
+	} else {
+		toVer, err = strconv.Atoi(toVersion)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid toVersion format")
+		}
+	}
+	if fromVersion == "" {
+		fromVer = toVer - 1
+	} else {
+		fromVer, err = strconv.Atoi(fromVersion)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid fromVersion format")
+		}
+	}
+
+	if fromVer <= 0 || toVer <= 0 {
+		return 0, 0, fmt.Errorf("from/to Version should be greater than equal to 1")
+	}
+
+	if fromVer >= toVer {
+		return 0, 0, fmt.Errorf("'from' should be less than 'to'")
+	}
+	return fromVer, toVer, nil
 }
