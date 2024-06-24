@@ -32,7 +32,7 @@ func init() {
 		SchemaName:  "testSchemaName",
 		Version:     int32(1),
 		Depth:       10,
-		SourceURL:   "https://source.golabs.io/engineering-platforms/hermes/esb-log-entities",
+		SourceURL:   "https://github.com/some-repo",
 		CommitSHA:   "bce5b348",
 	}
 }
