@@ -33,7 +33,7 @@ func init() {
 		Version:     int32(1),
 		Depth:       10,
 		SourceURL:   "https://github.com/some-repo",
-		CommitSHA:   "bce5b348",
+		CommitSHA:   "some-commit-sha",
 	}
 }
 

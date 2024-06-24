@@ -21,6 +21,6 @@
   "version": 1,
   "metadata": {
     "source_url": "https://github.com/some-repo",
-    "commit_sha": "bce5b348"
+    "commit_sha": "some-commit-sha"
   }
 }
