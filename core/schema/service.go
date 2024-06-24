@@ -307,11 +307,11 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	if errDepth != nil {
 		return nil, fmt.Errorf("invalid depth")
 	}
-	_, fromVerData, fromVerDataError := s.Get(ctx, namespace, schemaName, int32(fromVer))
+	_, fromVerData, fromVerDataError := s.Get(ctx, namespace, schemaName, fromVer)
 	if fromVerDataError != nil {
 		return nil, fmt.Errorf("error getting data for version %d - %s", fromVer, fromVerDataError.Error())
 	}
-	_, toVerData, toVerDataError := s.Get(ctx, namespace, schemaName, int32(toVer))
+	_, toVerData, toVerDataError := s.Get(ctx, namespace, schemaName, toVer)
 	if toVerDataError != nil {
 		return nil, fmt.Errorf("error getting data for version %d - %s", toVer, toVerDataError.Error())
 	}
@@ -320,7 +320,7 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 		SchemaName:  schemaName,
 		OldData:     fromVerData,
 		NewData:     toVerData,
-		Version:     int32(toVer),
+		Version:     toVer,
 		Depth:       int32(depth64),
 	}
 	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, req)
@@ -333,33 +333,35 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	return sce, nil
 }
 
-func (s *Service) getVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int, int, error) {
-	var toVer int
-	var fromVer int
+func (s *Service) getVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {
+	var toVer int32
+	var fromVer int32
 	var err error
 	if toVersion == "" {
-		var toVer32 int32
-		toVer32, err = s.repo.GetLatestVersion(ctx, namespace, schemaName)
+		toVer, err = s.repo.GetLatestVersion(ctx, namespace, schemaName)
 		if err != nil {
 			return 0, 0, fmt.Errorf("error getting latest version - %s", err.Error())
 		}
-		if toVer32 == 1 {
+		if toVer == 1 {
 			return 0, 0, fmt.Errorf("only one version exists for schema - %s", schemaName)
 		}
-		toVer = int(toVer32)
 	} else {
-		toVer, err = strconv.Atoi(toVersion)
+		var toVer64 int64
+		toVer64, err = strconv.ParseInt(toVersion, 10, 32)
 		if err != nil {
 			return 0, 0, fmt.Errorf("invalid toVersion format")
 		}
+		toVer = int32(int(toVer64))
 	}
 	if fromVersion == "" {
 		fromVer = toVer - 1
 	} else {
-		fromVer, err = strconv.Atoi(fromVersion)
+		var fromVer64 int64
+		fromVer64, err = strconv.ParseInt(fromVersion, 10, 32)
 		if err != nil {
 			return 0, 0, fmt.Errorf("invalid fromVersion format")
 		}
+		fromVer = int32(int(fromVer64))
 	}
 
 	if fromVer <= 0 || toVer <= 0 {
