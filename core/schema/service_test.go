@@ -3,6 +3,7 @@ package schema_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -467,4 +468,140 @@ func TestGetSchema(t *testing.T) {
 		assert.True(t, metadata)
 		assert.True(t, dataCheck)
 	})
+}
+
+func TestGetVersion(t *testing.T) {
+	tests := []struct {
+		name         string
+		fromVersion  string
+		toVersion    string
+		schemaRepo   func(*mocks.SchemaRepository)
+		expectedFrom int32
+		expectedTo   int32
+		expectedErr  error
+	}{
+		{
+			name:         "Valid fromVersion and toVersion",
+			fromVersion:  "2",
+			toVersion:    "5",
+			schemaRepo:   nil,
+			expectedFrom: 2,
+			expectedTo:   5,
+			expectedErr:  nil,
+		},
+		{
+			name:         "Invalid fromVersion format",
+			fromVersion:  "abc",
+			toVersion:    "5",
+			schemaRepo:   nil,
+			expectedFrom: 0,
+			expectedTo:   0,
+			expectedErr:  fmt.Errorf("invalid fromVersion format - strconv.ParseInt: parsing \"abc\": invalid syntax"),
+		},
+		{
+			name:         "Invalid toVersion format",
+			fromVersion:  "2",
+			toVersion:    "xyz",
+			schemaRepo:   nil,
+			expectedFrom: 0,
+			expectedTo:   0,
+			expectedErr:  fmt.Errorf("invalid toVersion format - strconv.ParseInt: parsing \"xyz\": invalid syntax"),
+		},
+		{
+			name:         "fromVersion less than 1",
+			fromVersion:  "0",
+			toVersion:    "5",
+			schemaRepo:   nil,
+			expectedFrom: 0,
+			expectedTo:   0,
+			expectedErr:  fmt.Errorf("fromVersion should be greater than or equal to 1"),
+		},
+		{
+			name:         "toVersion less than or equal to 1",
+			fromVersion:  "2",
+			toVersion:    "1",
+			schemaRepo:   nil,
+			expectedFrom: 0,
+			expectedTo:   0,
+			expectedErr:  fmt.Errorf("toVersion should be greater than 1"),
+		},
+		{
+			name:         "Only toVersion provided",
+			fromVersion:  "",
+			toVersion:    "3",
+			schemaRepo:   nil,
+			expectedFrom: 2,
+			expectedTo:   3,
+			expectedErr:  nil,
+		},
+		{
+			name:        "Only fromVersion provided",
+			fromVersion: "2",
+			toVersion:   "",
+			schemaRepo: func(mockRepo *mocks.SchemaRepository) {
+				mockRepo.On("GetLatestVersion", mock.Anything, "testNamespace", "testSchema").Return(int32(4), nil)
+			},
+			expectedFrom: 2,
+			expectedTo:   4,
+			expectedErr:  nil,
+		},
+		{
+			name:        "Both fromVersion and toVersion not provided",
+			fromVersion: "",
+			toVersion:   "",
+			schemaRepo: func(mockRepo *mocks.SchemaRepository) {
+				mockRepo.On("GetLatestVersion", mock.Anything, "testNamespace", "testSchema").Return(int32(3), nil)
+			},
+			expectedFrom: 2,
+			expectedTo:   3,
+			expectedErr:  nil,
+		},
+		{
+			name:         "fromVersion greater than or equal to toVersion",
+			fromVersion:  "5",
+			toVersion:    "3",
+			schemaRepo:   nil,
+			expectedFrom: 0,
+			expectedTo:   0,
+			expectedErr:  fmt.Errorf("'from' should be less than 'to'"),
+		},
+		{
+			name:        "Error in fetching latest version",
+			fromVersion: "",
+			toVersion:   "",
+			schemaRepo: func(mockRepo *mocks.SchemaRepository) {
+				mockRepo.On("GetLatestVersion", mock.Anything, "testNamespace", "testSchema").Return(int32(0), errors.New("some error"))
+			},
+			expectedFrom: 0,
+			expectedTo:   0,
+			expectedErr:  fmt.Errorf("error getting latest version - some error"),
+		},
+		{
+			name:        "Only one version exists for the schema",
+			fromVersion: "",
+			toVersion:   "",
+			schemaRepo: func(mockRepo *mocks.SchemaRepository) {
+				mockRepo.On("GetLatestVersion", mock.Anything, "testNamespace", "testSchema").Return(int32(1), nil)
+			},
+			expectedFrom: 0,
+			expectedTo:   0,
+			expectedErr:  fmt.Errorf("only one version exists for schema - testSchema"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			svc, _, _, schemaRepo, _, _, _, _ := getSvc()
+
+			if tt.schemaRepo != nil {
+				tt.schemaRepo(schemaRepo)
+			}
+
+			fromVer, toVer, err := svc.GetVersions(ctx, "testNamespace", "testSchema", tt.fromVersion, tt.toVersion)
+			assert.Equal(t, tt.expectedFrom, fromVer)
+			assert.Equal(t, tt.expectedTo, toVer)
+			assert.Equal(t, tt.expectedErr, err)
+		})
+	}
 }

@@ -292,28 +292,25 @@ func getIDforSchema(ns, schema, dataUUID string) string {
 
 func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta1.SchemaChangedEvent, error) {
 	ctx := context.Background()
-	fmt.Printf("fromVersion in request - %s", fromVersion)
-	fmt.Printf("toVersion in request- %s", toVersion)
-	fromVer, toVer, err := s.getVersions(ctx, namespace, schemaName, fromVersion, toVersion)
+	fromVer, toVer, err := s.GetVersions(ctx, namespace, schemaName, fromVersion, toVersion)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("fromVersion after conversion - %d", fromVer)
-	fmt.Printf("toVersion after conversion- %d", toVer)
+	log.Printf("fromVersion, toVersion - %s, %s\n", fromVersion, toVersion)
 	if depth == "" {
 		depth = strconv.Itoa(-1)
 	}
-	depth64, errDepth := strconv.ParseInt(depth, 10, 32)
-	if errDepth != nil {
+	depth64, err := strconv.ParseInt(depth, 10, 32)
+	if err != nil {
 		return nil, fmt.Errorf("invalid depth")
 	}
-	_, fromVerData, fromVerDataError := s.Get(ctx, namespace, schemaName, fromVer)
-	if fromVerDataError != nil {
-		return nil, fmt.Errorf("error getting data for version %d - %s", fromVer, fromVerDataError.Error())
+	_, fromVerData, err := s.Get(ctx, namespace, schemaName, fromVer)
+	if err != nil {
+		return nil, fmt.Errorf("error getting data for version %d - %s", fromVer, err.Error())
 	}
-	_, toVerData, toVerDataError := s.Get(ctx, namespace, schemaName, toVer)
-	if toVerDataError != nil {
-		return nil, fmt.Errorf("error getting data for version %d - %s", toVer, toVerDataError.Error())
+	_, toVerData, err := s.Get(ctx, namespace, schemaName, toVer)
+	if err != nil {
+		return nil, fmt.Errorf("error getting data for version %d - %s", toVer, err.Error())
 	}
 	req := &changedetector.ChangeRequest{
 		NamespaceID: namespace,
@@ -333,10 +330,34 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	return sce, nil
 }
 
-func (s *Service) getVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {
-	var toVer int32
-	var fromVer int32
+func (s *Service) GetVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {
+	var toVer, fromVer int32
 	var err error
+
+	if fromVersion != "" {
+		var fromVer64 int64
+		fromVer64, err = strconv.ParseInt(fromVersion, 10, 32)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid fromVersion format - %v", err)
+		}
+		if fromVer64 < 1 {
+			return 0, 0, fmt.Errorf("fromVersion should be greater than or equal to 1")
+		}
+		fromVer = int32(fromVer64)
+	}
+
+	if toVersion != "" {
+		var toVer64 int64
+		toVer64, err = strconv.ParseInt(toVersion, 10, 32)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid toVersion format - %v", err)
+		}
+		if toVer64 <= 1 {
+			return 0, 0, fmt.Errorf("toVersion should be greater than 1")
+		}
+		toVer = int32(toVer64)
+	}
+
 	if toVersion == "" {
 		toVer, err = s.repo.GetLatestVersion(ctx, namespace, schemaName)
 		if err != nil {
@@ -345,31 +366,15 @@ func (s *Service) getVersions(ctx context.Context, namespace string, schemaName 
 		if toVer == 1 {
 			return 0, 0, fmt.Errorf("only one version exists for schema - %s", schemaName)
 		}
-	} else {
-		var toVer64 int64
-		toVer64, err = strconv.ParseInt(toVersion, 10, 32)
-		if err != nil {
-			return 0, 0, fmt.Errorf("invalid toVersion format")
-		}
-		toVer = int32(int(toVer64))
-	}
-	if fromVersion == "" {
-		fromVer = toVer - 1
-	} else {
-		var fromVer64 int64
-		fromVer64, err = strconv.ParseInt(fromVersion, 10, 32)
-		if err != nil {
-			return 0, 0, fmt.Errorf("invalid fromVersion format")
-		}
-		fromVer = int32(int(fromVer64))
 	}
 
-	if fromVer <= 0 || toVer <= 0 {
-		return 0, 0, fmt.Errorf("from/to Version should be greater than equal to 1")
+	if fromVersion == "" {
+		fromVer = toVer - 1
 	}
 
 	if fromVer >= toVer {
 		return 0, 0, fmt.Errorf("'from' should be less than 'to'")
 	}
+
 	return fromVer, toVer, nil
 }
