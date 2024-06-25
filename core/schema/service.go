@@ -306,7 +306,7 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	}
 	log.Printf("fromVersion, toVersion - %s, %s\n", fromVersion, toVersion)
 	if depth == "" {
-		depth = strconv.Itoa(-1)
+		depth = "-1"
 	}
 	depth64, err := strconv.ParseInt(depth, 10, 32)
 	if err != nil {
