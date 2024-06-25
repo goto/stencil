@@ -34,9 +34,9 @@ func (_m *SchemaService) CheckCompatibility(ctx context.Context, nsName string, 
 	return r0
 }
 
-// Create provides a mock function with given fields: ctx, nsName, schemaName, metadata, data
-func (_m *SchemaService) Create(ctx context.Context, nsName string, schemaName string, metadata *schema.Metadata, data []byte) (schema.SchemaInfo, error) {
-	ret := _m.Called(ctx, nsName, schemaName, metadata, data)
+// Create provides a mock function with given fields: ctx, nsName, schemaName, metadata, data, commitSHA
+func (_m *SchemaService) Create(ctx context.Context, nsName string, schemaName string, metadata *schema.Metadata, data []byte, commitSHA string) (schema.SchemaInfo, error) {
+	ret := _m.Called(ctx, nsName, schemaName, metadata, data, commitSHA)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
@@ -44,17 +44,17 @@ func (_m *SchemaService) Create(ctx context.Context, nsName string, schemaName s
 
 	var r0 schema.SchemaInfo
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *schema.Metadata, []byte) (schema.SchemaInfo, error)); ok {
-		return rf(ctx, nsName, schemaName, metadata, data)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *schema.Metadata, []byte, string) (schema.SchemaInfo, error)); ok {
+		return rf(ctx, nsName, schemaName, metadata, data, commitSHA)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *schema.Metadata, []byte) schema.SchemaInfo); ok {
-		r0 = rf(ctx, nsName, schemaName, metadata, data)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *schema.Metadata, []byte, string) schema.SchemaInfo); ok {
+		r0 = rf(ctx, nsName, schemaName, metadata, data, commitSHA)
 	} else {
 		r0 = ret.Get(0).(schema.SchemaInfo)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, *schema.Metadata, []byte) error); ok {
-		r1 = rf(ctx, nsName, schemaName, metadata, data)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, *schema.Metadata, []byte, string) error); ok {
+		r1 = rf(ctx, nsName, schemaName, metadata, data, commitSHA)
 	} else {
 		r1 = ret.Error(1)
 	}

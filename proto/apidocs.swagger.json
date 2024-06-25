@@ -173,7 +173,11 @@
                 "description": {
                   "type": "string"
                 }
-              }
+              },
+              "required": [
+                "format",
+                "compatibility"
+              ]
             }
           }
         ],
@@ -502,14 +506,11 @@
     "protobufAny": {
       "type": "object",
       "properties": {
-        "typeUrl": {
+        "@type": {
           "type": "string"
-        },
-        "value": {
-          "type": "string",
-          "format": "byte"
         }
-      }
+      },
+      "additionalProperties": {}
     },
     "rpcStatus": {
       "type": "object",
@@ -524,6 +525,7 @@
         "details": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
         }
@@ -561,10 +563,7 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "required": [
-            "id"
-          ]
+          "type": "string"
         },
         "format": {
           "$ref": "#/definitions/SchemaFormat"
@@ -577,7 +576,9 @@
         }
       },
       "required": [
-        "id"
+        "id",
+        "format",
+        "compatibility"
       ]
     },
     "v1beta1CreateNamespaceResponse": {
@@ -684,6 +685,7 @@
         "namespaces": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/v1beta1Namespace"
           }
         }
@@ -695,6 +697,7 @@
         "schemas": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/stencilv1beta1Schema"
           }
         }
@@ -782,6 +785,7 @@
         "hits": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/v1beta1SearchHits"
           }
         },

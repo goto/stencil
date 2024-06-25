@@ -24,7 +24,11 @@ type searchData struct {
 	Fields []string
 }
 
-func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaName string, metadata *schema.Metadata, versionID string, file *schema.SchemaFile) (int32, error) {
+func (r *SchemaRepository) Create(ctx context.Context, request *schema.UpdateSchemaRequest, versionID string, commitSHA string) (int32, error) {
+	namespace := request.Namespace
+	schemaName := request.Schema
+	metadata := request.Metadata
+	file := request.SchemaFile
 	var version int32
 	err := r.db.BeginFunc(ctx, func(t pgx.Tx) error {
 		vErr := t.QueryRow(ctx, getSchemaVersionByID, versionID).Scan(&version)
@@ -35,10 +39,10 @@ func (r *SchemaRepository) Create(ctx context.Context, namespace string, schemaN
 			return vErr
 		}
 		var schemaID int32
-		if err := t.QueryRow(ctx, schemaInsertQuery, schemaName, namespace, metadata.Format, metadata.Compatibility).Scan(&schemaID); err != nil {
+		if err := t.QueryRow(ctx, schemaInsertQuery, schemaName, namespace, metadata.Format, metadata.Compatibility, metadata.SourceURL).Scan(&schemaID); err != nil {
 			return err
 		}
-		if err := t.QueryRow(ctx, versionInsertQuery, schemaID, versionID, file.ID,
+		if err := t.QueryRow(ctx, versionInsertQuery, schemaID, versionID, commitSHA, file.ID,
 			&searchData{Types: file.Types, Fields: file.Fields}, file.Data).Scan(&version); err != nil {
 			return err
 		}
@@ -110,8 +114,8 @@ func (r *SchemaRepository) GetSchemaID(ctx context.Context, ns string, sc string
 }
 
 const schemaInsertQuery = `
-INSERT INTO schemas (name, namespace_id, format, compatibility, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, now(), now())
+INSERT INTO schemas (name, namespace_id, format, compatibility, source_url, created_at, updated_at)
+    VALUES ($1, $2, $3, $4,$5, now(), now())
 ON CONFLICT ON CONSTRAINT schema_name_namespace_unique_idx DO UPDATE SET updated_at=now() RETURNING id
 `
 
@@ -124,16 +128,16 @@ WITH max_version(value) as (
 	SELECT COALESCE((SELECT MAX(vs.version) from versions as vs WHERE vs.schema_id=$1), 0)
 ),
 insert_version(value) as (
-	INSERT INTO versions (version, schema_id, id, created_at)
-	VALUES ((select max_version.value + 1 from max_version), $1, $2, now())
+	INSERT INTO versions (version, schema_id, id, commit_sha, created_at)
+	VALUES ((select max_version.value + 1 from max_version), $1, $2, $3, now())
 	RETURNING version
 ),
 file_insert as (
 	INSERT INTO schema_files (id, search_data, data, created_at, updated_at)
-	VALUES ($3, $4, $5, now(), now()) ON CONFLICT DO NOTHING
+	VALUES ($4, $5, $6, now(), now()) ON CONFLICT DO NOTHING
 ),
 map_insert as (
-	INSERT INTO versions_schema_files (version_id, schema_file_id) VALUES ($2, $3)
+	INSERT INTO versions_schema_files (version_id, schema_file_id) VALUES ($2, $4)
 )
 SELECT value from insert_version
 `
@@ -174,14 +178,14 @@ v.id=$1
 `
 
 const getSchemaMetaQuery = `
-SELECT COALESCE(sc.authority, '') as authority,  COALESCE(sc.format, '') as format, COALESCE(sc.compatibility, '') as compatibility from schemas as sc WHERE sc.namespace_id=$1 AND sc.name=$2
+SELECT COALESCE(sc.authority, '') as authority,  COALESCE(sc.format, '') as format, COALESCE(sc.compatibility, '') as compatibility, COALESCE(sc.source_url, '') as source_url from schemas as sc WHERE sc.namespace_id=$1 AND sc.name=$2
 `
 const updateSchemaMetaQuery = `
 UPDATE schemas SET compatibility=$3, updated_at=now() WHERE namespace_id=$1 AND name=$2 RETURNING COALESCE(authority, '') as authority,  COALESCE(format, '') as format, COALESCE(compatibility, '') as compatibility
 `
 
 const schemaListQuery = `
-SELECT name, format, compatibility, COALESCE(authority, '') as authority from schemas where namespace_id=$1
+SELECT name, format, source_url, compatibility, COALESCE(authority, '') as authority from schemas where namespace_id=$1
 `
 const listVersionsQuery = `
 SELECT vs.version from versions as vs
