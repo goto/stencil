@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	"github.com/jackc/pgx/v4"
 
 	"github.com/goto/stencil/config"
@@ -100,7 +99,7 @@ func (s *Service) checkCompatibility(ctx context.Context, nsName, schemaName, fo
 	return checkerFn(current, []ParsedSchema{prevSchema})
 }
 
-func (s *Service) Create(ctx context.Context, nsName string, schemaName string, metadata *Metadata, data []byte) (SchemaInfo, error) {
+func (s *Service) Create(ctx context.Context, nsName string, schemaName string, metadata *Metadata, data []byte, commitSHA string) (SchemaInfo, error) {
 	endFunc := s.newrelic.StartGenericSegment(ctx, "Create Schema Info")
 	defer endFunc()
 	var scInfo SchemaInfo
@@ -121,10 +120,17 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 	mergedMetadata := &Metadata{
 		Format:        format,
 		Compatibility: compatibility,
+		SourceURL:     metadata.SourceURL,
 	}
 	versionID := getIDforSchema(nsName, schemaName, sf.ID)
 	_, prevSchemaData, err2 := s.GetLatest(ctx, nsName, schemaName)
-	version, err := s.repo.Create(ctx, nsName, schemaName, mergedMetadata, versionID, sf)
+	request := &UpdateSchemaRequest{
+		Namespace:  nsName,
+		Schema:     schemaName,
+		Metadata:   mergedMetadata,
+		SchemaFile: sf,
+	}
+	version, err := s.repo.Create(ctx, request, versionID, commitSHA)
 	if err != nil {
 		log.Printf("got error while creating schema %s in namespace %s -> %s", schemaName, nsName, err.Error())
 	}
@@ -139,6 +145,8 @@ func (s *Service) Create(ctx context.Context, nsName string, schemaName string, 
 				OldData:     prevSchemaData,
 				NewData:     data,
 				Depth:       s.config.SchemaChange.Depth,
+				SourceURL:   metadata.SourceURL,
+				CommitSHA:   commitSHA,
 			}
 			go func() {
 				newCtx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
