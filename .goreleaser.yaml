@@ -1,3 +1,4 @@
+version: 1
 project_name: stencil
 release:
   prerelease: auto
