@@ -292,7 +292,7 @@ func getIDforSchema(ns, schema, dataUUID string) string {
 
 func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta1.SchemaChangedEvent, error) {
 	ctx := context.Background()
-	fromVer, toVer, err := s.GetVersions(ctx, namespace, schemaName, fromVersion, toVersion)
+	fromVer, toVer, err := s.ValidateVersions(ctx, namespace, schemaName, fromVersion, toVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	}
 	depth64, err := strconv.ParseInt(depth, 10, 32)
 	if err != nil {
-		return nil, fmt.Errorf("invalid depth")
+		return nil, fmt.Errorf("invalid depth - %v", depth)
 	}
 	_, fromVerData, err := s.Get(ctx, namespace, schemaName, fromVer)
 	if err != nil {
@@ -330,7 +330,7 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	return sce, nil
 }
 
-func (s *Service) GetVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {
+func (s *Service) ValidateVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {
 	var toVer, fromVer int32
 	var err error
 

@@ -598,7 +598,7 @@ func TestGetVersion(t *testing.T) {
 				tt.schemaRepo(schemaRepo)
 			}
 
-			fromVer, toVer, err := svc.GetVersions(ctx, "testNamespace", "testSchema", tt.fromVersion, tt.toVersion)
+			fromVer, toVer, err := svc.ValidateVersions(ctx, "testNamespace", "testSchema", tt.fromVersion, tt.toVersion)
 			assert.Equal(t, tt.expectedFrom, fromVer)
 			assert.Equal(t, tt.expectedTo, toVer)
 			assert.Equal(t, tt.expectedErr, err)
