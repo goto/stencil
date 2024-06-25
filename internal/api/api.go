@@ -15,6 +15,7 @@ import (
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/core/schema"
 	"github.com/goto/stencil/core/search"
+	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 )
 
@@ -40,6 +41,7 @@ type SchemaService interface {
 	UpdateMetadata(ctx context.Context, namespace, schemaName string, meta *schema.Metadata) (*schema.Metadata, error)
 	List(ctx context.Context, namespaceID string) ([]schema.Schema, error)
 	ListVersions(ctx context.Context, namespaceID string, schemaName string) ([]int32, error)
+	DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta2.SchemaChangedEvent, error)
 }
 
 type SearchService interface {
@@ -73,6 +75,7 @@ func (a *API) RegisterSchemaHandlers(mux *runtime.ServeMux, app *newrelic.Applic
 	mux.HandlePath(wrapHandler(app, "GET", "/v1beta1/namespaces/{namespace}/schemas/{name}", handleSchemaResponse(mux, a.HTTPLatestSchema)))
 	mux.HandlePath(wrapHandler(app, "POST", "/v1beta1/namespaces/{namespace}/schemas/{name}", wrapErrHandler(mux, a.HTTPUpload)))
 	mux.HandlePath(wrapHandler(app, "POST", "/v1beta1/namespaces/{namespace}/schemas/{name}/check", wrapErrHandler(mux, a.HTTPCheckCompatibility)))
+	mux.HandlePath(wrapHandler(app, "GET", "/v1beta1/schema/detect-change/{namespaceId}/{schemaName}", wrapErrHandler(mux, a.DetectSchemaChange)))
 }
 
 func handleSchemaResponse(mux *runtime.ServeMux, getSchemaFn getSchemaData) runtime.HandlerFunc {

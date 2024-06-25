@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"

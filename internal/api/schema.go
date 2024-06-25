@@ -113,7 +113,6 @@ func (a *API) GetSchema(ctx context.Context, in *stencilv1beta1.GetSchemaRequest
 func (a *API) HTTPGetSchema(w http.ResponseWriter, req *http.Request, pathParams map[string]string) (*schema.Metadata, []byte, error) {
 	endFunc := a.newrelic.StartGenericSegment(req.Context(), "GetSchema")
 	defer endFunc()
-	defer endFunc()
 	namespaceID := pathParams["namespace"]
 	schemaName := pathParams["name"]
 	versionString := pathParams["version"]
@@ -169,4 +168,19 @@ func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersio
 	return &stencilv1beta1.DeleteVersionResponse{
 		Message: message,
 	}, err
+}
+
+func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Request, pathParams map[string]string) error {
+	namespaceID := pathParams["namespaceId"]
+	schemaName := pathParams["schemaName"]
+
+	requestQuery := request.URL.Query()
+	fromVersion, toVersion, depth := requestQuery.Get("from"), requestQuery.Get("to"), requestQuery.Get("depth")
+
+	sce, err := a.schema.DetectSchemaChange(namespaceID, schemaName, fromVersion, toVersion, depth)
+	if err != nil {
+		return err
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(writer).Encode(sce)
 }
