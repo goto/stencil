@@ -1,4 +1,4 @@
-version: 1
+version: 2
 project_name: stencil
 release:
   prerelease: auto
@@ -65,22 +65,22 @@ nfpms:
     formats:
       - deb
       - rpm
-scoop:
-  bucket:
-    owner: goto
-    name: scoop-bucket
-  homepage: "https://github.com/goto/stencil"
-  description: "Schema registry"
-  license: Apache 2.0
+scoops:
+  - repository:
+      owner: goto
+      name: scoop-bucket
+    homepage: "https://github.com/goto/stencil"
+    description: "Schema registry"
+    license: Apache 2.0
 brews:
   - name: stencil
     homepage: "https://github.com/goto/stencil"
     description: "Schema registry"
-    tap:
+    repository:
       owner: goto
       name: homebrew-tap
     license: "Apache 2.0"
-    folder: Formula
+    directory: Formula
     dependencies:
       - name: git
     install: |-
