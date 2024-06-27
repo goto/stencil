@@ -3,9 +3,10 @@ package api
 import (
 	"context"
 
-	"github.com/goto/stencil/core/namespace"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/goto/stencil/core/namespace"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 func createNamespaceRequestToNamespace(r *stencilv1beta1.CreateNamespaceRequest) namespace.Namespace {

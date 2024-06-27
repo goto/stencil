@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/goto/stencil/core/changedetector"
-	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 type Metadata struct {
@@ -75,7 +75,7 @@ type Schema struct {
 }
 
 type ChangeDetectorService interface {
-	IdentifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) (*stencilv1beta2.SchemaChangedEvent, error)
+	IdentifySchemaChange(ctx context.Context, request *changedetector.ChangeRequest) (*stencilv1beta1.SchemaChangedEvent, error)
 }
 
 type Producer interface {

@@ -10,7 +10,7 @@ import (
 	"github.com/goto/stencil/config"
 	"github.com/goto/stencil/core/changedetector"
 	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
-	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/stretchr/testify/assert"
@@ -128,7 +128,7 @@ func TestSchemaCreate(t *testing.T) {
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
 		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 		schemaRepo.On("GetSchemaID", mock.Anything, nsName, "a").Return(int32(1), nil)
-		sce := &stencilv1beta2.SchemaChangedEvent{
+		sce := &stencilv1beta1.SchemaChangedEvent{
 			UpdatedSchemas: []string{"a,b"},
 		}
 		cdService.On("IdentifySchemaChange", mock.Anything, mock.Anything).Return(sce, nil)
@@ -178,7 +178,7 @@ func TestSchemaCreate(t *testing.T) {
 		parsedSchema.On("GetCanonicalValue").Return(scFile)
 		schemaRepo.On("Create", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(int32(1), nil)
 		schemaRepo.On("GetSchemaID", mock.Anything, nsName, "a").Return(int32(1), nil)
-		cdService.On("IdentifySchemaChange", mock.Anything, mock.Anything).Return(&stencilv1beta2.SchemaChangedEvent{}, nil)
+		cdService.On("IdentifySchemaChange", mock.Anything, mock.Anything).Return(&stencilv1beta1.SchemaChangedEvent{}, nil)
 		neRepo.On("GetByNameSpaceSchemaVersionAndSuccess", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(changedetector.NotificationEvent{}, pgx.ErrNoRows)
 		var called bool
 		var compatibility bool

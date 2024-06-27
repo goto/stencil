@@ -10,10 +10,11 @@ import (
 	"github.com/goto/salt/printer"
 	"github.com/goto/salt/prompt"
 	"github.com/goto/salt/term"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 func NamespaceCmd(cdk *CDK) *cobra.Command {
