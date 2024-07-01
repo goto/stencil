@@ -8,12 +8,13 @@ import (
 	"github.com/alecthomas/chroma/quick"
 	"github.com/goto/salt/printer"
 	"github.com/goto/salt/term"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoprint"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 func printSchemaCmd(cdk *CDK) *cobra.Command {

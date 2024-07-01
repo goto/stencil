@@ -40,7 +40,7 @@ import (
 	"github.com/goto/stencil/internal/api"
 	"github.com/goto/stencil/pkg/logger"
 	"github.com/goto/stencil/pkg/validator"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 // Start Entry point to start the server

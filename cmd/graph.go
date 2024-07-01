@@ -5,11 +5,12 @@ import (
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/goto/stencil/pkg/graph"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	"github.com/goto/stencil/pkg/graph"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 func graphSchemaCmd(cdk *CDK) *cobra.Command {

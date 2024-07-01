@@ -15,8 +15,7 @@ import (
 	"github.com/goto/stencil/core/namespace"
 	"github.com/goto/stencil/core/schema"
 	"github.com/goto/stencil/core/search"
-	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 type getSchemaData func(http.ResponseWriter, *http.Request, map[string]string) (*schema.Metadata, []byte, error)
@@ -41,7 +40,7 @@ type SchemaService interface {
 	UpdateMetadata(ctx context.Context, namespace, schemaName string, meta *schema.Metadata) (*schema.Metadata, error)
 	List(ctx context.Context, namespaceID string) ([]schema.Schema, error)
 	ListVersions(ctx context.Context, namespaceID string, schemaName string) ([]int32, error)
-	DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta2.SchemaChangedEvent, error)
+	DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta1.SchemaChangedEvent, error)
 }
 
 type SearchService interface {

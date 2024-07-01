@@ -7,10 +7,11 @@ import (
 
 	"github.com/goto/salt/cmdx"
 	"github.com/goto/salt/config"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 type ClientConfig struct {

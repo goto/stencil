@@ -6,8 +6,9 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/goto/salt/printer"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
 	"github.com/spf13/cobra"
+
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 func deleteSchemaCmd(cdk *CDK) *cobra.Command {

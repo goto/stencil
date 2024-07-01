@@ -15,7 +15,7 @@ import (
 
 	"github.com/goto/stencil/core/changedetector"
 	mocks2 "github.com/goto/stencil/pkg/newrelic/mocks"
-	stencilv1beta2 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 	"github.com/goto/stencil/test_helper"
 )
 
@@ -250,7 +250,7 @@ func TestIdentifySchemaChange(t *testing.T) {
 	})
 }
 
-func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta2.SchemaChangedEvent) {
+func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta1.SchemaChangedEvent) {
 	t.Helper()
 	assert.Equal(t, expected.NamespaceName, actual.NamespaceName)
 	assert.Equal(t, expected.SchemaName, actual.SchemaName)
@@ -261,14 +261,14 @@ func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta2.Sche
 	assert.Equal(t, expected.Metadata, actual.Metadata)
 }
 
-func assertUpdatedFields(t *testing.T, expected, actual map[string]*stencilv1beta2.ImpactedFields) {
+func assertUpdatedFields(t *testing.T, expected, actual map[string]*stencilv1beta1.ImpactedFields) {
 	t.Helper()
 	assert.Equal(t, len(expected), len(actual))
 	for k, v := range expected {
 		assert.ElementsMatch(t, v.FieldNames, actual[k].FieldNames)
 	}
 }
-func assertImpactedSchemas(t *testing.T, expected, actual map[string]*stencilv1beta2.ImpactedSchemas) {
+func assertImpactedSchemas(t *testing.T, expected, actual map[string]*stencilv1beta1.ImpactedSchemas) {
 	t.Helper()
 	assert.Equal(t, len(expected), len(actual))
 	for k, v := range expected {
@@ -276,13 +276,13 @@ func assertImpactedSchemas(t *testing.T, expected, actual map[string]*stencilv1b
 	}
 }
 
-func getSchemaChangeEvent(filePath string) *stencilv1beta2.SchemaChangedEvent {
+func getSchemaChangeEvent(filePath string) *stencilv1beta1.SchemaChangedEvent {
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		fmt.Println("Error reading JSON file:", err)
 		return nil
 	}
-	var event *stencilv1beta2.SchemaChangedEvent
+	var event *stencilv1beta1.SchemaChangedEvent
 	if err := json.Unmarshal(data, &event); err != nil {
 		fmt.Println("Error decoding JSON:", err)
 		return nil

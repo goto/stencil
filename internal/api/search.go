@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/goto/stencil/core/search"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 func (a *API) Search(ctx context.Context, in *stencilv1beta1.SearchRequest) (*stencilv1beta1.SearchResponse, error) {

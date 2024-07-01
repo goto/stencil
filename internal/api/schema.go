@@ -11,7 +11,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	"github.com/goto/stencil/core/schema"
-	stencilv1beta1 "github.com/goto/stencil/proto/v1beta1"
+	stencilv1beta1 "github.com/goto/stencil/proto/gotocompany/stencil/v1beta1"
 )
 
 func schemaToProto(s schema.Schema) *stencilv1beta1.Schema {
