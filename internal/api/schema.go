@@ -24,8 +24,12 @@ func schemaToProto(s schema.Schema) *stencilv1beta1.Schema {
 }
 
 func (a *API) CreateSchema(ctx context.Context, in *stencilv1beta1.CreateSchemaRequest) (*stencilv1beta1.CreateSchemaResponse, error) {
-	metadata := &schema.Metadata{Format: in.GetFormat().String(), Compatibility: in.GetCompatibility().String()}
-	sc, err := a.schema.Create(ctx, in.NamespaceId, in.SchemaId, metadata, in.GetData(), "")
+	metadata := &schema.Metadata{
+		Format:        in.GetFormat().String(),
+		Compatibility: in.GetCompatibility().String(),
+		SourceURL:     in.GetSourceUrl(),
+	}
+	sc, err := a.schema.Create(ctx, in.NamespaceId, in.SchemaId, metadata, in.GetData(), in.GetCommitSha())
 	return &stencilv1beta1.CreateSchemaResponse{
 		Version:  sc.Version,
 		Id:       sc.ID,
