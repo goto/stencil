@@ -287,6 +287,8 @@ func (m *Schema) validate(all bool) error {
 		}
 	}
 
+	// no validation rules for SourceUrl
+
 	if len(errors) > 0 {
 		return SchemaMultiError(errors)
 	}
@@ -2009,6 +2011,10 @@ func (m *CreateSchemaRequest) validate(all bool) error {
 
 	// no validation rules for Compatibility
 
+	// no validation rules for SourceUrl
+
+	// no validation rules for CommitSha
+
 	if len(errors) > 0 {
 		return CreateSchemaRequestMultiError(errors)
 	}
@@ -2602,6 +2608,8 @@ func (m *GetSchemaMetadataResponse) validate(all bool) error {
 			}
 		}
 	}
+
+	// no validation rules for SourceUrl
 
 	if len(errors) > 0 {
 		return GetSchemaMetadataResponseMultiError(errors)

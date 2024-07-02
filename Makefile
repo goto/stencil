@@ -1,6 +1,6 @@
 NAME="github.com/goto/stencil"
 VERSION=$(shell git describe --always --tags 2>/dev/null)
-PROTON_COMMIT := "6bc4e5b240f0fd8a2dab4696c570a9c9a6a692ec"
+PROTON_COMMIT := "4fb568dd9af09c7efeac3e60fc3a999e239d419a"
 EXCLUDE_FILES :=./test_utils/testutils.go
 .PHONY: all build test clean dist vet proto install ui
 
