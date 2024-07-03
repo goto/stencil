@@ -20,6 +20,7 @@ func schemaToProto(s schema.Schema) *stencilv1beta1.Schema {
 		Format:        stencilv1beta1.Schema_Format(stencilv1beta1.Schema_Format_value[s.Format]),
 		Compatibility: stencilv1beta1.Schema_Compatibility(stencilv1beta1.Schema_Compatibility_value[s.Compatibility]),
 		Authority:     s.Authority,
+		SourceUrl:     s.SourceURL,
 	}
 }
 
@@ -138,6 +139,7 @@ func (a *API) GetSchemaMetadata(ctx context.Context, in *stencilv1beta1.GetSchem
 		Format:        stencilv1beta1.Schema_Format(stencilv1beta1.Schema_Format_value[meta.Format]),
 		Compatibility: stencilv1beta1.Schema_Compatibility(stencilv1beta1.Schema_Compatibility_value[meta.Compatibility]),
 		Authority:     meta.Authority,
+		SourceUrl:     meta.SourceURL,
 	}, err
 }
 
