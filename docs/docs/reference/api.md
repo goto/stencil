@@ -1,6 +1,6 @@
 # API
 
-## Version: 0.8.1
+## Version: 0.8.5
 
 ### /v1beta1/namespaces
 
