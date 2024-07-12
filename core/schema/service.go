@@ -206,13 +206,6 @@ func (s *Service) identifySchemaChange(ctx context.Context, request *changedetec
 }
 
 func (s *Service) sendNotification(ctx context.Context, sce *stencilv1beta1.SchemaChangedEvent, request *changedetector.ChangeRequest, schemaID int32) error {
-	var err error
-	if schemaID == -1 {
-		schemaID, err = s.repo.GetSchemaID(ctx, request.NamespaceID, request.SchemaName)
-		if err != nil {
-			return fmt.Errorf("got error while getting schema ID from DB %s", err.Error())
-		}
-	}
 	if len(sce.UpdatedSchemas) > 0 {
 		notificationEvent := createNotificationEvent(sce, request, schemaID, false)
 		if _, err := s.notificationEventRepo.Create(ctx, notificationEvent); err != nil {
@@ -259,6 +252,9 @@ func (s *Service) withMetadata(ctx context.Context, namespace, schemaName string
 
 func (s *Service) Get(ctx context.Context, namespace string, schemaName string, version int32) (*Metadata, []byte, error) {
 	return s.withMetadata(ctx, namespace, schemaName, func() ([]byte, error) { return s.cachedGetSchema(ctx, namespace, schemaName, version) })
+}
+func (s *Service) getVersionCommitSHA(ctx context.Context, schemaID int32, version int32) (string, error) {
+	return s.repo.GetVersionCommitSHA(ctx, schemaID, version)
 }
 
 func (s *Service) Delete(ctx context.Context, namespace string, schemaName string) error {
@@ -320,6 +316,15 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	if err != nil {
 		return nil, fmt.Errorf("error getting data for version %d - %s", toVer, err.Error())
 	}
+	metadata, err := s.GetMetadata(ctx, namespace, schemaName)
+	if err != nil {
+		return nil, fmt.Errorf("errot getting source url %s", err.Error())
+	}
+	schemaID, err := s.repo.GetSchemaID(ctx, namespace, schemaName)
+	if err != nil {
+		return nil, fmt.Errorf("got error while getting schema ID from DB %s", err.Error())
+	}
+	commitSHA, err := s.getVersionCommitSHA(ctx, schemaID, toVer)
 	req := &changedetector.ChangeRequest{
 		NamespaceID: namespace,
 		SchemaName:  schemaName,
@@ -327,12 +332,14 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 		NewData:     toVerData,
 		Version:     toVer,
 		Depth:       int32(depth64),
+		SourceURL:   metadata.SourceURL,
+		CommitSHA:   commitSHA,
 	}
 	sce, err := s.changeDetectorService.IdentifySchemaChange(ctx, req)
 	if err != nil {
 		return sce, fmt.Errorf("got error while identifying schema change for namespace : %s, schema: %s, version: %d, %s", req.NamespaceID, req.SchemaName, req.Version, err.Error())
 	}
-	if err := s.sendNotification(ctx, sce, req, -1); err != nil {
+	if err := s.sendNotification(ctx, sce, req, schemaID); err != nil {
 		return sce, err
 	}
 	return sce, nil

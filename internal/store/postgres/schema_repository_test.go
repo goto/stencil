@@ -106,7 +106,14 @@ func TestSchema(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, []int32{1}, schemaList)
 		})
-
+		t.Run("getVersionCommitSHA: should get version commitSHA", func(t *testing.T) {
+			s, err := db.GetSchemaID(ctx, n.ID, "sName")
+			assert.Nil(t, err)
+			assert.NotZero(t, s)
+			actual, err := db.GetVersionCommitSHA(ctx, s, 1)
+			assert.Nil(t, err)
+			assert.Equal(t, commitSHA, actual)
+		})
 		t.Run("deleteSchema: should delete specified schema", func(t *testing.T) {
 			err := db.Delete(ctx, n.ID, "sName")
 			assert.Nil(t, err)
@@ -114,6 +121,7 @@ func TestSchema(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, 0, len(schemaList))
 		})
+
 	})
 	tearDown(t)
 }
