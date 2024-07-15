@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"github.com/MakeNowJust/heredoc"
+	"github.com/spf13/cobra"
+
 	"github.com/goto/stencil/config"
 	"github.com/goto/stencil/internal/server"
 	"github.com/goto/stencil/internal/store/postgres"
-	"github.com/spf13/cobra"
 
 	// Importing postgres driver
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"

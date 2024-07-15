@@ -7,13 +7,15 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
+
 	"github.com/goto/stencil/core/changedetector"
+	"github.com/goto/stencil/internal/prometheus"
 	newRelic2 "github.com/goto/stencil/pkg/newrelic"
 
 	"github.com/cactus/go-statsd-client/v5/statsd"
 
 	"github.com/dgraph-io/ristretto"
-	"github.com/gorilla/mux"
 	"github.com/goto/salt/spa"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/newrelic/go-agent/v3/integrations/nrgrpc"
@@ -46,7 +48,8 @@ import (
 // Start Entry point to start the server
 func Start(cfg config.Config) {
 	ctx := context.Background()
-
+	baseMux := http.NewServeMux()
+	prometheus.MetricsHandler(baseMux)
 	db := postgres.NewStore(cfg.DB.ConnectionString)
 
 	namespaceRepository := postgres.NewNamespaceRepository(db)
