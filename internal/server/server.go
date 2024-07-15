@@ -48,8 +48,6 @@ import (
 // Start Entry point to start the server
 func Start(cfg config.Config) {
 	ctx := context.Background()
-	baseMux := http.NewServeMux()
-	prometheus.MetricsHandler(baseMux)
 	db := postgres.NewStore(cfg.DB.ConnectionString)
 
 	namespaceRepository := postgres.NewNamespaceRepository(db)
@@ -116,20 +114,20 @@ func Start(cfg config.Config) {
 		log.Fatalln("Failed to dial server:", err)
 	}
 	api.RegisterSchemaHandlers(gatewayMux, nr)
-
+	baseMux := createBaseMux()
+	prometheus.MetricsHandler(baseMux)
 	if err = stencilv1beta1.RegisterStencilServiceHandler(ctx, gatewayMux, conn); err != nil {
 		log.Fatalln("Failed to register stencil service handler:", err)
 	}
 
 	rtr := mux.NewRouter()
-
 	spaHandler, err := spa.Handler(ui.Assets, "build", "index.html", false)
 	if err != nil {
 		log.Fatalln("Failed to load spa:", err)
 	}
 	rtr.PathPrefix("/ui").Handler(http.StripPrefix("/ui", spaHandler))
-
-	runWithGracefulShutdown(&cfg, grpcHandlerFunc(s, gatewayMux, rtr), func() {
+	baseMux.Handle("/", middleware(gatewayMux))
+	runWithGracefulShutdown(&cfg, grpcHandlerFunc(s, baseMux, rtr), func() {
 		conn.Close()
 		s.GracefulStop()
 		db.Close()
@@ -151,4 +149,17 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler, uiHandl
 			}
 		}
 	}), &http2.Server{})
+}
+
+func createBaseMux() *http.ServeMux {
+	baseMux := http.NewServeMux()
+	baseMux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "pong")
+	})
+	return baseMux
+}
+func middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
 }
