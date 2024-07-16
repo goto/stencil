@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
@@ -105,6 +106,11 @@ func (r *SchemaRepository) DeleteVersion(ctx context.Context, ns string, sc stri
 	// Idempotent operation to clean orphaned data.
 	r.db.Exec(ctx, deleteOrphanedData)
 	return wrapError(err, "delete version")
+}
+func (r *SchemaRepository) GetVersionCommitSHA(ctx context.Context, schemaID int32, version int32) (string, error) {
+	var commitSHA string
+	err := pgxscan.Get(ctx, r.db, &commitSHA, getVersionCommitSHA, version, schemaID)
+	return commitSHA, wrapError(err, string(schemaID), version)
 }
 
 func (r *SchemaRepository) GetSchemaID(ctx context.Context, ns string, sc string) (int32, error) {
@@ -214,4 +220,7 @@ DELETE from schema_files WHERE id NOT IN (SELECT DISTINCT vsf.schema_file_id fro
 
 const getSchemaIDByNSAndSchemaName = `
 select id  from schemas where namespace_id=$1 AND name=$2
+`
+const getVersionCommitSHA = `
+SELECT COALESCE(v.commit_sha, '') as commit_sha from versions as v WHERE v.version=$1 AND v.schema_id=$2
 `

@@ -194,6 +194,34 @@ func (_m *SchemaRepository) GetSchemaID(ctx context.Context, ns string, sc strin
 	return r0, r1
 }
 
+// GetVersionCommitSHA provides a mock function with given fields: ctx, schemaID, version
+func (_m *SchemaRepository) GetVersionCommitSHA(ctx context.Context, schemaID int32, version int32) (string, error) {
+	ret := _m.Called(ctx, schemaID, version)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetVersionCommitSHA")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int32, int32) (string, error)); ok {
+		return rf(ctx, schemaID, version)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int32, int32) string); ok {
+		r0 = rf(ctx, schemaID, version)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int32, int32) error); ok {
+		r1 = rf(ctx, schemaID, version)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // List provides a mock function with given fields: _a0, _a1
 func (_m *SchemaRepository) List(_a0 context.Context, _a1 string) ([]schema.Schema, error) {
 	ret := _m.Called(_a0, _a1)

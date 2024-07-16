@@ -47,6 +47,7 @@ type Repository interface {
 	Delete(context.Context, string, string) error
 	DeleteVersion(context.Context, string, string, int32) error
 	GetSchemaID(ctx context.Context, ns string, sc string) (int32, error)
+	GetVersionCommitSHA(ctx context.Context, schemaID int32, version int32) (string, error)
 }
 
 type ParsedSchema interface {
