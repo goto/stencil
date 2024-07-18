@@ -3,31 +3,37 @@ package kafka
 import (
 	"context"
 	"fmt"
-	"github.com/cactus/go-statsd-client/v5/statsd"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
-	"log"
-	"time"
 )
 
-const (
-	SuccessCountMetric = "kafka.SuccessCount"
-	FailureCountMetric = "kafka.FailureCount"
+var (
+	kafkaSuccess = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "kafka_messages_success_count",
+		Help: "Success count of the successfully processed kafka messages",
+	})
+	kafkaFailure = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "kafka_messages_failure_count",
+		Help: "Failure count of the kafka messages",
+	}, []string{"cause"})
 )
 
 type Writer struct {
-	kafkaWriter  *kafka.Writer
-	statsdClient statsd.Statter
+	kafkaWriter *kafka.Writer
 }
 
-func NewWriter(kafkaBrokerUrl string, timeout int, retries int, statsdClient statsd.Statter) *Writer {
+func NewWriter(kafkaBrokerUrl string, timeout int, retries int) *Writer {
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(kafkaBrokerUrl),
 		WriteTimeout: time.Second * time.Duration(timeout),
 		MaxAttempts:  retries,
 	}
 
-	return &Writer{kafkaWriter: writer, statsdClient: statsdClient}
+	return &Writer{kafkaWriter: writer}
 }
 
 func (w *Writer) Close() error {
@@ -50,15 +56,9 @@ func (w *Writer) Write(topic string, protoMessage proto.Message) error {
 func (w *Writer) send(message kafka.Message) error {
 	err := w.kafkaWriter.WriteMessages(context.Background(), message)
 	if err != nil {
-		metricsErr := w.statsdClient.Inc(FailureCountMetric, 1, 1)
-		if metricsErr != nil {
-			log.Printf("Failed to increase Failure metric - %s", err.Error())
-		}
+		kafkaFailure.WithLabelValues("kafka_message_produce_error" + " " + err.Error()).Inc()
 		return err
 	}
-	err = w.statsdClient.Inc(SuccessCountMetric, 1, 1)
-	if err != nil {
-		log.Printf("Failed to increase Success metric - %s", err.Error())
-	}
+	kafkaSuccess.Inc()
 	return nil
 }

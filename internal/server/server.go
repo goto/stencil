@@ -13,8 +13,6 @@ import (
 	"github.com/goto/stencil/internal/prometheus"
 	newRelic2 "github.com/goto/stencil/pkg/newrelic"
 
-	"github.com/cactus/go-statsd-client/v5/statsd"
-
 	"github.com/dgraph-io/ristretto"
 	"github.com/goto/salt/spa"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -66,16 +64,11 @@ func Start(cfg config.Config) {
 
 	changeDetectorService := changedetector.NewService(newRelic)
 
-	statsdConfig := &statsd.ClientConfig{
-		Address: cfg.StatsD.Address,
-		Prefix:  cfg.StatsD.Prefix,
-	}
-	fmt.Printf("Kafka Adress %s", cfg.KafkaProducer.BootstrapServer)
-	statsdClient, err := statsd.NewClientWithConfig(statsdConfig)
+	fmt.Printf("Kafka Address %s", cfg.KafkaProducer.BootstrapServer)
 	if err != nil {
 		log.Fatal("Error creating StatsD client:", err)
 	}
-	producer := kafka.NewWriter(cfg.KafkaProducer.BootstrapServer, cfg.KafkaProducer.Timeout, cfg.KafkaProducer.Retries, statsdClient)
+	producer := kafka.NewWriter(cfg.KafkaProducer.BootstrapServer, cfg.KafkaProducer.Timeout, cfg.KafkaProducer.Retries)
 
 	notificationEventRepo := postgres.NewNotificationEventRepository(db)
 

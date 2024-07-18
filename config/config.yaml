@@ -30,11 +30,6 @@ kafkaProducer:
   retries: 5
   timeout: 5000
 
-# StatsD Config
-statsd:
-  address: "localhost:9090"
-  prefix: "schema-change-event"
-
 # Schema Change config
 schemachange:
   kafkatopic: "schema_change"
