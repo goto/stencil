@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alecthomas/chroma v0.8.2
-	github.com/cactus/go-statsd-client/v5 v5.1.0
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/dot v0.16.0

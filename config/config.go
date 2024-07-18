@@ -27,12 +27,6 @@ type KafkaProducerConfig struct {
 	Timeout         int `default:"5000"`
 }
 
-// StatsDConfig
-type StatsDConfig struct {
-	Address string
-	Prefix  string
-}
-
 // SchameChangeConfig
 type SchemaChangeConfig struct {
 	KafkaTopic string
@@ -50,6 +44,5 @@ type Config struct {
 	NewRelic      NewRelicConfig
 	DB            DBConfig
 	KafkaProducer KafkaProducerConfig
-	StatsD        StatsDConfig
 	SchemaChange  SchemaChangeConfig
 }
