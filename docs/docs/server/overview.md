@@ -13,6 +13,7 @@ Stencil is dynamic protobuf schema registry. It provides REST interface for stor
 ## Requirements
 
 - postgres 13
+- kafka 3.7.0
 
 ## Installation
 
@@ -42,14 +43,21 @@ $ ./stencil server start -c config.yaml
 You can also specfify stencil server configurations through following environment variables.
 Note: ENV vars takes more precendence over config file.
 
-| ENV                   | Description                                                                                                                                            |
-| :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                | port number default to `8080`                                                                                                                          |
-| `TIMEOUT`             | graceful time to wait before shutting down the server. Takes `time.Duration` format. Eg: `30s` or `20m`                                                |
-| `DB_CONNECTIONSTRING` | postgres db connection [url](https://www.postgresql.org/docs/11/libpq-connect.html#LIBPQ-CONNSTRING). Eg: `postgres://postgres@localhost:5432/db_name` |
-| `NEWRELIC_ENABLED`    | boolean to enable newrelic                                                                                                                             |
-| `NEWRELIC_APPNAME`    | appname                                                                                                                                                |
-| `NEWRELIC_LICENSE`    | License key for newrelic                                                                                                                               |
+| ENV                             | Description                                                                                                                                            |
+|:--------------------------------| :----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                          | port number default to `8080`                                                                                                                          |
+| `TIMEOUT`                       | graceful time to wait before shutting down the server. Takes `time.Duration` format. Eg: `30s` or `20m`                                                |
+| `DB_CONNECTIONSTRING`           | postgres db connection [url](https://www.postgresql.org/docs/11/libpq-connect.html#LIBPQ-CONNSTRING). Eg: `postgres://postgres@localhost:5432/db_name` |
+| `NEWRELIC_ENABLED`              | boolean to enable newrelic                                                                                                                             |
+| `NEWRELIC_APPNAME`              | appname                                                                                                                                                |
+| `NEWRELIC_LICENSE`              | License key for newrelic  
+| `KAFKAPRODUCER_BOOTSTRAPSERVER` | bootstrap server for kafka
+| `KAFKAPRODUCER_RETRIES`         | Number of retries for producer if publish to kafka topic fails
+| `KAFKAPRODUCER_TIMEOUT`         | Timeout for write operation performed by the Writer.
+| `SCHEMACHANGE_ENABLE`           | flag to enable change detector 
+| `SCHEMACHANGE_KAFKATOPIC`        | name of kafka topic to which messages related to SchemaChangeEvent will be published
+| `SCHEMACHANGE_DEPTH`             | Depth to which indirectly impacted schemas are processed. If empty or -1, it will process all indirectly impacted schemas.
+
 
 ## Reference
 
@@ -76,7 +84,7 @@ curl -X POST http://localhost:8000/v1beta1/namespaces -H 'Content-Type: applicat
 curl http://localhost:8000/v1beta1/namespaces
 
 # upload generated proto descriptor file to server with schema name as `example` under `quickstart` namespace.
-curl -X POST http://localhost:8000/v1beta1/namespaces/quickstart/schemas/example --data-binary "@file.desc"
+curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha" -X POST http://localhost:8000/v1beta1/namespaces/quickstart/schemas/example --data-binary "@file.desc"
 
 # get list of schemas available in a namespace
 curl -X GET http://localhost:8000/v1beta1/namespaces/quickstart/schemas
@@ -97,7 +105,7 @@ echo "syntax=\"proto3\";\npackage stencil;\nmessage One {\n  int32 field_one = 2
 protoc --descriptor_set_out=./file.desc --include_imports ./**/*.proto;
 
 # now try to upload this descriptor file with same name as before. This call should fail, giving you reason it has failed.
-curl -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc";
+curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha"  -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc";
 
 # now let's try fixing our proto add a new field without having any breaking changes.
 echo "syntax=\"proto3\";\npackage stencil;\nmessage One {\n  int32 field_one = 1;\nint32 field_two = 2;\n}" > one.proto;
@@ -106,11 +114,11 @@ echo "syntax=\"proto3\";\npackage stencil;\nmessage One {\n  int32 field_one = 1
 protoc --descriptor_set_out=./file.desc --include_imports ./**/*.proto
 
 # now try to upload this descriptor file with same name as before. This call should succeed
-curl -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
+curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha"  -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
 
 # now try versions api. It should have 2 versions now.
 curl -X GET http://localhost:8000/v1beta1/namespaces/quickstart/schemas/example/versions
 
 # upload schema can be called multiple times. Stencil server will retain old version if it's already uploaded. This call won't create new version again. You can verify by using versions API again.
-curl -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
+curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha" -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
 ```

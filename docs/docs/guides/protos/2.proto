@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package gotocompany.test.stencil.main;
+
+option java_multiple_files = true;
+option java_package = "com.test.stencil.main";
+option java_outer_classname = "FriendsProto";
+
+message  User{
+  string  name = 1;
+  repeated  Friend friends = 2;
+}
+
+message Friend {
+  string name = 1;
+  Address address = 2;
+}
+
+message Address {
+  string city = 1;
+}
+

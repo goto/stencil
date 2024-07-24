@@ -43,7 +43,7 @@ echo "syntax=\"proto3\";\npackage stencil;\nmessage One {\n  int32 field_one = 2
 protoc --descriptor_set_out=./file.desc --include_imports ./**/*.proto;
 
 # now try to upload this descriptor file with same name as before. This call should fail, giving you reason it has failed.
-curl -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc";
+curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha" -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc";
 
 # now let's try fixing our proto add a new field without having any breaking changes.
 echo "syntax=\"proto3\";\npackage stencil;\nmessage One {\n  int32 field_one = 1;\nint32 field_two = 2;\n}" > one.proto;
@@ -52,7 +52,7 @@ echo "syntax=\"proto3\";\npackage stencil;\nmessage One {\n  int32 field_one = 1
 protoc --descriptor_set_out=./file.desc --include_imports ./**/*.proto
 
 # now try to upload this descriptor file with same name as before. This call should succeed
-curl -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
+curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha" -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
 ```
 
 ## List versions
@@ -63,5 +63,5 @@ curl -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binar
 curl -X GET http://localhost:8000/v1beta1/namespaces/quickstart/schemas/example/versions
 
 # upload schema can be called multiple times. Stencil server will retain old version if it's already uploaded. This call won't create new version again. You can verify by using versions API again.
-curl -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
+curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha" -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
 ```
