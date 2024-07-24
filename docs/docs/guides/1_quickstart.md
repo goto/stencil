@@ -10,7 +10,7 @@ This quick start will explore how to use Stencil command line interface and clie
 - [Docker](../installation#using-docker-image) or a [local installation](../installation#binary-cross-platform) of the Stencil binary.
 - A development environment applicable to one of the languages in this quick start (currently Go, Java, and JavaScript).
 - Postgres database and [protoc](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation) if your schema format is protobuf.
-- Kafka up
+- Kafka
 
 ## Step 1: Start server
 
