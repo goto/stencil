@@ -13,7 +13,7 @@ List names of namespaces
 ##### Responses
 
 | Code    | Description                   | Schema                                                          |
-| ------- | ----------------------------- | --------------------------------------------------------------- |
+|---------|-------------------------------|-----------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1ListNamespacesResponse](#v1beta1listnamespacesresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                         |
 
@@ -26,13 +26,13 @@ Create namespace entry
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema                                                          |
-| ---- | ---------- | ----------- | -------- | --------------------------------------------------------------- |
+|------|------------|-------------|----------|-----------------------------------------------------------------|
 | body | body       |             | Yes      | [v1beta1CreateNamespaceRequest](#v1beta1createnamespacerequest) |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                            |
-| ------- | ----------------------------- | ----------------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1CreateNamespaceResponse](#v1beta1createnamespaceresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                           |
 
@@ -47,13 +47,13 @@ Get namespace by id
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ------ |
+|------|------------|-------------|----------|--------|
 | id   | path       |             | Yes      | string |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                      |
-| ------- | ----------------------------- | ----------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1GetNamespaceResponse](#v1beta1getnamespaceresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                     |
 
@@ -70,13 +70,13 @@ Ensure all schemas under this namespace is deleted, otherwise it will throw erro
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ------ |
+|------|------------|-------------|----------|--------|
 | id   | path       |             | Yes      | string |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                            |
-| ------- | ----------------------------- | ----------------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1DeleteNamespaceResponse](#v1beta1deletenamespaceresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                           |
 
@@ -89,14 +89,14 @@ Update namespace entity by id
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ------ |
+|------|------------|-------------|----------|--------|
 | id   | path       |             | Yes      | string |
 | body | body       |             | Yes      | object |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                            |
-| ------- | ----------------------------- | ----------------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1UpdateNamespaceResponse](#v1beta1updatenamespaceresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                           |
 
@@ -111,13 +111,13 @@ List schemas under the namespace
 ##### Parameters
 
 | Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ------ |
+|------|------------|-------------|----------|--------|
 | id   | path       |             | Yes      | string |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                    |
-| ------- | ----------------------------- | --------------------------------------------------------- |
+|---------|-------------------------------|-----------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1ListSchemasResponse](#v1beta1listschemasresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                   |
 
@@ -131,19 +131,20 @@ Get latest schema
 
 ##### Description
 
-Returns latest schema in it's own data type. For protobuf response type would be 'application/octet-stream'. Avro, json schema response type would be 'application/json'
+Returns latest schema in it's own data type. For protobuf response type would be 'application/octet-stream'. Avro, json
+schema response type would be 'application/json'
 
 ##### Parameters
 
 | Name        | Located in | Description | Required | Schema |
-| ----------- | ---------- | ----------- | -------- | ------ |
+|-------------|------------|-------------|----------|--------|
 | namespaceId | path       |             | Yes      | string |
 | schemaId    | path       |             | Yes      | string |
 
 ##### Responses
 
 | Code    | Description                                                                                                                                                                                                                  | Schema                  |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|
 | 200     | A successful schema response. Based on schema format, response will return different content types. For avro and json schemas response type is `application/json`. For protobuf response type is `application/octet-stream`. |                         |
 | default | An unexpected error response.                                                                                                                                                                                                | [rpcStatus](#rpcstatus) |
 
@@ -155,16 +156,20 @@ Create schema under the namespace
 
 ##### Parameters
 
-| Name        | Located in | Description                                                           | Required | Schema |
-| ----------- | ---------- | --------------------------------------------------------------------- | -------- | ------ |
-| namespaceId | path       |                                                                       | Yes      | string |
-| schemaId    | path       |                                                                       | Yes      | string |
-| body        | body       | Request payload should be equivalent to `curl` `--data-binary` option | Yes      | binary |
+| Name            | Located in | Description                                                           | Required | Schema |
+|-----------------|------------|-----------------------------------------------------------------------|----------|--------|
+| namespaceId     | path       |                                                                       | Yes      | string |
+| schemaId        | path       |                                                                       | Yes      | string |
+| body            | body       | Request payload should be equivalent to `curl` `--data-binary` option | Yes      | binary |
+| X-Format        | header     |                                                                       | No       | string |
+| X-Compatibility | header     |                                                                       | No       | string |
+| X-SourceURL     | header     | source URL of the project                                             | No       | string |
+| X-CommitSHA     | header     | commit SHA of corresponding to th change                              | No       | string |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                      |
-| ------- | ----------------------------- | ----------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1CreateSchemaResponse](#v1beta1createschemaresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                     |
 
@@ -177,14 +182,14 @@ Delete specified schema
 ##### Parameters
 
 | Name        | Located in | Description | Required | Schema |
-| ----------- | ---------- | ----------- | -------- | ------ |
+|-------------|------------|-------------|----------|--------|
 | namespaceId | path       |             | Yes      | string |
 | schemaId    | path       |             | Yes      | string |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                      |
-| ------- | ----------------------------- | ----------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1DeleteSchemaResponse](#v1beta1deleteschemaresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                     |
 
@@ -197,7 +202,7 @@ Update only schema metadata
 ##### Parameters
 
 | Name        | Located in | Description | Required | Schema |
-| ----------- | ---------- | ----------- | -------- | ------ |
+|-------------|------------|-------------|----------|--------|
 | namespaceId | path       |             | Yes      | string |
 | schemaId    | path       |             | Yes      | string |
 | body        | body       |             | Yes      | object |
@@ -205,7 +210,7 @@ Update only schema metadata
 ##### Responses
 
 | Code    | Description                   | Schema                                                                      |
-| ------- | ----------------------------- | --------------------------------------------------------------------------- |
+|---------|-------------------------------|-----------------------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1UpdateSchemaMetadataResponse](#v1beta1updateschemametadataresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                                     |
 
@@ -224,7 +229,7 @@ Checks comptibility with existing latest schema
 ##### Parameters
 
 | Name            | Located in | Description | Required | Schema |
-| --------------- | ---------- | ----------- | -------- | ------ |
+|-----------------|------------|-------------|----------|--------|
 | namespaceId     | path       |             | Yes      | string |
 | schemaId        | path       |             | Yes      | string |
 | body            | body       |             | Yes      | binary |
@@ -233,7 +238,7 @@ Checks comptibility with existing latest schema
 ##### Responses
 
 | Code    | Description                   | Schema                                                      |
-| ------- | ----------------------------- | ----------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1CreateSchemaResponse](#v1beta1createschemaresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                     |
 
@@ -248,14 +253,14 @@ Create schema under the namespace. Returns version number, unique ID and locatio
 ##### Parameters
 
 | Name        | Located in | Description | Required | Schema |
-| ----------- | ---------- | ----------- | -------- | ------ |
+|-------------|------------|-------------|----------|--------|
 | namespaceId | path       |             | Yes      | string |
 | schemaId    | path       |             | Yes      | string |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                                |
-| ------- | ----------------------------- | --------------------------------------------------------------------- |
+|---------|-------------------------------|-----------------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1GetSchemaMetadataResponse](#v1beta1getschemametadataresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                               |
 
@@ -270,14 +275,14 @@ List all version numbers for schema
 ##### Parameters
 
 | Name        | Located in | Description | Required | Schema |
-| ----------- | ---------- | ----------- | -------- | ------ |
+|-------------|------------|-------------|----------|--------|
 | namespaceId | path       |             | Yes      | string |
 | schemaId    | path       |             | Yes      | string |
 
 ##### Responses
 
 | Code    | Description                   | Schema                                                      |
-| ------- | ----------------------------- | ----------------------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1ListVersionsResponse](#v1beta1listversionsresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                     |
 
@@ -292,7 +297,7 @@ Delete specified version of the schema
 ##### Parameters
 
 | Name        | Located in | Description | Required | Schema  |
-| ----------- | ---------- | ----------- | -------- | ------- |
+|-------------|------------|-------------|----------|---------|
 | namespaceId | path       |             | Yes      | string  |
 | schemaId    | path       |             | Yes      | string  |
 | versionId   | path       |             | Yes      | integer |
@@ -300,7 +305,7 @@ Delete specified version of the schema
 ##### Responses
 
 | Code    | Description                   | Schema                                                        |
-| ------- | ----------------------------- | ------------------------------------------------------------- |
+|---------|-------------------------------|---------------------------------------------------------------|
 | 200     | A successful response.        | [v1beta1DeleteVersionResponse](#v1beta1deleteversionresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                                       |
 
@@ -315,7 +320,7 @@ Global Search API
 ##### Parameters
 
 | Name        | Located in | Description | Required | Schema  |
-| ----------- | ---------- | ----------- | -------- | ------- |
+|-------------|------------|-------------|----------|---------|
 | namespaceId | query      |             | No       | string  |
 | schemaId    | query      |             | No       | string  |
 | query       | query      |             | Yes      | string  |
@@ -325,7 +330,7 @@ Global Search API
 ##### Responses
 
 | Code    | Description                   | Schema                                          |
-| ------- | ----------------------------- | ----------------------------------------------- |
+|---------|-------------------------------|-------------------------------------------------|
 | 200     | A successful response.        | [v1beta1SearchResponse](#v1beta1searchresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                         |
 
@@ -334,26 +339,26 @@ Global Search API
 #### SchemaCompatibility
 
 | Name                | Type   | Description | Required |
-| ------------------- | ------ | ----------- | -------- |
+|---------------------|--------|-------------|----------|
 | SchemaCompatibility | string |             |          |
 
 #### SchemaFormat
 
 | Name         | Type   | Description | Required |
-| ------------ | ------ | ----------- | -------- |
+|--------------|--------|-------------|----------|
 | SchemaFormat | string |             |          |
 
 #### protobufAny
 
 | Name    | Type   | Description | Required |
-| ------- | ------ | ----------- | -------- |
+|---------|--------|-------------|----------|
 | typeUrl | string |             | No       |
 | value   | byte   |             | No       |
 
 #### rpcStatus
 
 | Name    | Type                            | Description | Required |
-| ------- | ------------------------------- | ----------- | -------- |
+|---------|---------------------------------|-------------|----------|
 | code    | integer                         |             | No       |
 | message | string                          |             | No       |
 | details | [ [protobufAny](#protobufany) ] |             | No       |
@@ -361,13 +366,13 @@ Global Search API
 #### v1beta1CheckCompatibilityResponse
 
 | Name                              | Type   | Description | Required |
-| --------------------------------- | ------ | ----------- | -------- |
+|-----------------------------------|--------|-------------|----------|
 | v1beta1CheckCompatibilityResponse | object |             |          |
 
 #### v1beta1CreateNamespaceRequest
 
 | Name          | Type                                        | Description | Required |
-| ------------- | ------------------------------------------- | ----------- | -------- |
+|---------------|---------------------------------------------|-------------|----------|
 | id            | string                                      |             | Yes      |
 | format        | [SchemaFormat](#schemaformat)               |             | No       |
 | compatibility | [SchemaCompatibility](#schemacompatibility) |             | No       |
@@ -376,13 +381,13 @@ Global Search API
 #### v1beta1CreateNamespaceResponse
 
 | Name      | Type                                  | Description | Required |
-| --------- | ------------------------------------- | ----------- | -------- |
+|-----------|---------------------------------------|-------------|----------|
 | namespace | [v1beta1Namespace](#v1beta1namespace) |             | No       |
 
 #### v1beta1CreateSchemaResponse
 
 | Name     | Type    | Description | Required |
-| -------- | ------- | ----------- | -------- |
+|----------|---------|-------------|----------|
 | version  | integer |             | No       |
 | id       | string  |             | No       |
 | location | string  |             | No       |
@@ -390,37 +395,37 @@ Global Search API
 #### v1beta1DeleteNamespaceResponse
 
 | Name    | Type   | Description | Required |
-| ------- | ------ | ----------- | -------- |
+|---------|--------|-------------|----------|
 | message | string |             | No       |
 
 #### v1beta1DeleteSchemaResponse
 
 | Name    | Type   | Description | Required |
-| ------- | ------ | ----------- | -------- |
+|---------|--------|-------------|----------|
 | message | string |             | No       |
 
 #### v1beta1DeleteVersionResponse
 
 | Name    | Type   | Description | Required |
-| ------- | ------ | ----------- | -------- |
+|---------|--------|-------------|----------|
 | message | string |             | No       |
 
 #### v1beta1GetLatestSchemaResponse
 
 | Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
+|------|------|-------------|----------|
 | data | byte |             | No       |
 
 #### v1beta1GetNamespaceResponse
 
 | Name      | Type                                  | Description | Required |
-| --------- | ------------------------------------- | ----------- | -------- |
+|-----------|---------------------------------------|-------------|----------|
 | namespace | [v1beta1Namespace](#v1beta1namespace) |             | No       |
 
 #### v1beta1GetSchemaMetadataResponse
 
 | Name          | Type                                        | Description | Required |
-| ------------- | ------------------------------------------- | ----------- | -------- |
+|---------------|---------------------------------------------|-------------|----------|
 | format        | [SchemaFormat](#schemaformat)               |             | No       |
 | compatibility | [SchemaCompatibility](#schemacompatibility) |             | No       |
 | authority     | string                                      |             | No       |
@@ -428,31 +433,31 @@ Global Search API
 #### v1beta1GetSchemaResponse
 
 | Name | Type | Description | Required |
-| ---- | ---- | ----------- | -------- |
+|------|------|-------------|----------|
 | data | byte |             | No       |
 
 #### v1beta1ListNamespacesResponse
 
 | Name       | Type       | Description | Required |
-| ---------- | ---------- | ----------- | -------- |
+|------------|------------|-------------|----------|
 | namespaces | [ string ] |             | No       |
 
 #### v1beta1ListSchemasResponse
 
 | Name    | Type       | Description | Required |
-| ------- | ---------- | ----------- | -------- |
+|---------|------------|-------------|----------|
 | schemas | [ string ] |             | No       |
 
 #### v1beta1ListVersionsResponse
 
 | Name     | Type        | Description | Required |
-| -------- | ----------- | ----------- | -------- |
+|----------|-------------|-------------|----------|
 | versions | [ integer ] |             | No       |
 
 #### v1beta1Namespace
 
 | Name          | Type                                        | Description | Required |
-| ------------- | ------------------------------------------- | ----------- | -------- |
+|---------------|---------------------------------------------|-------------|----------|
 | id            | string                                      |             | No       |
 | format        | [SchemaFormat](#schemaformat)               |             | No       |
 | Compatibility | [SchemaCompatibility](#schemacompatibility) |             | No       |
@@ -463,7 +468,7 @@ Global Search API
 #### v1beta1SearchHits
 
 | Name        | Type       | Description | Required |
-| ----------- | ---------- | ----------- | -------- |
+|-------------|------------|-------------|----------|
 | namespaceId | string     |             | No       |
 | schemaId    | string     |             | No       |
 | versionId   | integer    |             | No       |
@@ -474,26 +479,26 @@ Global Search API
 #### v1beta1SearchMeta
 
 | Name  | Type | Description | Required |
-| ----- | ---- | ----------- | -------- |
+|-------|------|-------------|----------|
 | total | long |             | No       |
 
 #### v1beta1SearchResponse
 
 | Name | Type                                        | Description | Required |
-| ---- | ------------------------------------------- | ----------- | -------- |
+|------|---------------------------------------------|-------------|----------|
 | hits | [ [v1beta1SearchHits](#v1beta1searchhits) ] |             | No       |
 | meta | [v1beta1SearchMeta](#v1beta1searchmeta)     |             | No       |
 
 #### v1beta1UpdateNamespaceResponse
 
 | Name      | Type                                  | Description | Required |
-| --------- | ------------------------------------- | ----------- | -------- |
+|-----------|---------------------------------------|-------------|----------|
 | namespace | [v1beta1Namespace](#v1beta1namespace) |             | No       |
 
 #### v1beta1UpdateSchemaMetadataResponse
 
 | Name          | Type                                        | Description | Required |
-| ------------- | ------------------------------------------- | ----------- | -------- |
+|---------------|---------------------------------------------|-------------|----------|
 | format        | [SchemaFormat](#schemaformat)               |             | No       |
 | compatibility | [SchemaCompatibility](#schemacompatibility) |             | No       |
 | authority     | string                                      |             | No       |
@@ -517,7 +522,6 @@ Global Search API
 | Name        | Type            | Description                  | Required |
 |-------------|-----------------|------------------------------|----------|
 | field_names | repeated string | List of impacted field names | No       |
-
 
 #### v1beta1ImpactedSchemas
 
