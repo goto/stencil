@@ -10,6 +10,7 @@ This quick start will explore how to use Stencil command line interface and clie
 - [Docker](../installation#using-docker-image) or a [local installation](../installation#binary-cross-platform) of the Stencil binary.
 - A development environment applicable to one of the languages in this quick start (currently Go, Java, and JavaScript).
 - Postgres database and [protoc](https://github.com/protocolbuffers/protobuf#protocol-compiler-installation) if your schema format is protobuf.
+- Kafka
 
 ## Step 1: Start server
 
@@ -43,7 +44,7 @@ Note: Below command assumes `stencil_dev` db present in your postgres instance.
 $ docker run -e PORT=8000 -e DB_CONNECTIONSTRING=postgres://postgres@host.docker.internal:5432/stencil_dev?sslmode=disable -p 8000:8000 gotocompany/stencil server migrate
 
 # Stencil server at port 8000
-$ docker run -e PORT=8000 -e DB_CONNECTIONSTRING=postgres://postgres@host.docker.internal:5432/stencil_dev?sslmode=disable -p 8000:8000 gotocompany/stencil server start
+$ docker run -e PORT=8000 -e KAFKAPRODUCER_BOORSTRAP_SERVER=localhost:9092 SCHEMACHANGE_ENABLE=true SCHEMACHANGE_KAFKATOPIC=schema_change DB_CONNECTIONSTRING=postgres://postgres@host.docker.internal:5432/stencil_dev?sslmode=disable -p 8000:8000 gotocompany/stencil server start
 
 # Check if server running
 $ curl -X GET http://localhost:8000/ping
