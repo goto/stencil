@@ -101,3 +101,8 @@ E.g. If depth is `2` then the `impacted_schemas` for `Address` in below sample w
 
 ## Showing MR information 
 While calculating the impacted schemas, the `SchemaChangedEvent` will also include information about the source URL and commit SHA. The `source_url` represents the repository URL, and the `commit_sha` corresponds to the commit SHA associated with that version.
+
+## Detect Schema Change
+```bash
+$ curl -X GET http://localhost:8080/v1beta1/schema/detect-change/quickstart/example?from=1&to=2;
+```

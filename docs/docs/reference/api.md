@@ -334,6 +334,55 @@ Global Search API
 | 200     | A successful response.        | [v1beta1SearchResponse](#v1beta1searchresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                         |
 
+### /v1beta1/schema/detect-change/{namespaceId}/{schemaName}?from=1&to=2
+
+#### GET
+
+##### Summary
+
+Detect Schema Change for the given version i.e v1 and v2.
+
+#### Parameters
+
+| Name        | Located in | Description                                    | Required | Schema  |
+|-------------|------------|------------------------------------------------|----------|---------|
+| namespaceId | path       |                                                | Yes      | string  |
+| schemaName  | path       |                                                | Yes      | string  |
+| from        | queryParam | version from which change has to be calculated | No       | integer |
+| to          | queryParam | version to which change has to be calculated   | No       | integer |
+
+#### Parameters
+
+| Name        | Located in | Description                                    | Required | Schema  |
+|-------------|------------|------------------------------------------------|----------|---------|
+| namespaceId | path       |                                                | Yes      | string  |
+| schemaName  | path       |                                                | Yes      | string  |
+| from        | queryParam | version from which change has to be calculated | No       | integer |
+| to          | queryParam | version to which change has to be calculated   | No       | integer |
+
+####
+| S. No | From |
+|-------
+Different values and validation of `from` and `to` version
+
+| S. No. | From | To     | From (In Code) | To (In Code) | Error                                    |
+|--------|------|--------|----------------|--------------|------------------------------------------|
+| 1.     | “”   | “”     | latest-1       | latest       | N/A                                      |
+| 2.     | “”   | latest | latest-1       | latest       | N/A                                      |
+| 3.     | “”   | 42     | 41             | 42           | N/A                                      |
+| 4.     | 41   | “”     | 41             | latest       | N/A                                      |
+| 5.     | 41   | 42     | 41             | 42           | N/A                                      |
+| 6.     | 41   | 45     | 41             | 45           | N/A                                      |
+| 7.     | 41   | 40     | -              | -            | Bad Request: From should be less than To |
+| 8.     | 41   | 41     | -              | -            | Bad Request: From should be less than To |
+
+##### Responses
+
+| Code    | Description                   | Schema                                                  |
+|---------|-------------------------------|---------------------------------------------------------|
+| 200     | A successful response.        | [v1beta1SchemaChangedEvent](#v1beta1SchemaChangedEvent) |
+| default | An unexpected error response. | [rpcStatus](#rpcstatus)                                 |
+
 ### Models
 
 #### SchemaCompatibility
