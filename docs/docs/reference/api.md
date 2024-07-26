@@ -334,7 +334,9 @@ Global Search API
 | 200     | A successful response.        | [v1beta1SearchResponse](#v1beta1searchresponse) |
 | default | An unexpected error response. | [rpcStatus](#rpcstatus)                         |
 
-### /v1beta1/schema/detect-change/{namespaceId}/{schemaName}?from=1&to=2
+### Reconciliation API
+
+#### /v1beta1/schema/detect-change/{namespaceId}/{schemaName}?from={v1}&to={v2}
 
 #### GET
 
@@ -342,7 +344,7 @@ Global Search API
 
 Detect Schema Change for the given version i.e v1 and v2.
 
-#### Parameters
+##### Parameters
 
 | Name        | Located in | Description                                    | Required | Schema  |
 |-------------|------------|------------------------------------------------|----------|---------|
@@ -351,19 +353,7 @@ Detect Schema Change for the given version i.e v1 and v2.
 | from        | queryParam | version from which change has to be calculated | No       | integer |
 | to          | queryParam | version to which change has to be calculated   | No       | integer |
 
-#### Parameters
-
-| Name        | Located in | Description                                    | Required | Schema  |
-|-------------|------------|------------------------------------------------|----------|---------|
-| namespaceId | path       |                                                | Yes      | string  |
-| schemaName  | path       |                                                | Yes      | string  |
-| from        | queryParam | version from which change has to be calculated | No       | integer |
-| to          | queryParam | version to which change has to be calculated   | No       | integer |
-
-####
-| S. No | From |
-|-------
-Different values and validation of `from` and `to` version
+##### Different cases and validation of `from` and `to` version
 
 | S. No. | From | To     | From (In Code) | To (In Code) | Error                                    |
 |--------|------|--------|----------------|--------------|------------------------------------------|
