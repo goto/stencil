@@ -1,6 +1,6 @@
 # API
 
-## Version: 0.8.5
+## Version: 0.8.7
 
 ### /v1beta1/namespaces
 
@@ -505,17 +505,17 @@ Global Search API
 
 #### v1beta1SchemaChangedEvent
 
-| Name             | Type                                                                   | Description                                                          | Required |
-|------------------|------------------------------------------------------------------------|----------------------------------------------------------------------|----------|
-| event_id         | string                                                                 | event id of the message                                              | No       |
-| event_timestamp  | google.protobuf.Timestamp                                              | timestamp for the message                                            | No       |
-| namespace_name   | string                                                                 | name of namespace                                                    | No       |
-| schema_name      | string                                                                 | name of schema                                                       | No       |
-| updated_schemas  | repeated string                                                        | directly updated schemas                                             | No       |
-| updated_fields   | [ImpactedFields](#v1beta1ImpactedFields)(map<string, ImpactedFields>   | impacted fields corresponding to schema                              | No       |
-| impacted_schemas | [ImpactedSchemas](#v1beta1ImpactedSchemas)map<string, ImpactedSchemas> | indirectly impacted schema corresponding to directly impacted schema | No       |
-| version          | int32                                                                  | version                                                              | No       |
-| metadata         | [Metadata](v1beta1Metadata)                                            | Metdata like commit_sha , source_url                                 | No       |
+| Name             | Type                                                                    | Description                                                          | Required |
+|------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|----------|
+| event_id         | string                                                                  | event id of the message                                              | No       |
+| event_timestamp  | google.protobuf.Timestamp                                               | timestamp for the message                                            | No       |
+| namespace_name   | string                                                                  | name of namespace                                                    | No       |
+| schema_name      | string                                                                  | name of schema                                                       | No       |
+| updated_schemas  | repeated string                                                         | directly updated schemas                                             | No       |
+| updated_fields   | [ImpactedFields](#v1beta1ImpactedFields) map<string, ImpactedFields>    | impacted fields corresponding to schema                              | No       |
+| impacted_schemas | [ImpactedSchemas](#v1beta1ImpactedSchemas) map<string, ImpactedSchemas> | indirectly impacted schema corresponding to directly impacted schema | No       |
+| version          | int32                                                                   | version                                                              | No       |
+| metadata         | [Metadata](#v1beta1Metadata)                                            | Metdata like commit_sha , source_url                                 | No       |
 
 #### v1beta1ImpactedFields
 
