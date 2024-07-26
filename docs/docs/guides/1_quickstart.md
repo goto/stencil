@@ -170,6 +170,10 @@ $ curl -X GET http://localhost:8000/v1beta1/namespaces/quickstart/schemas/exampl
 
 # Download latest version of particular schema
 $ curl -X GET http://localhost:8000/v1beta1/namespaces/quickstart/schemas/example;
+
+# Reconciliation API
+$ curl -X GET http://localhost:8080/v1beta1/schema/detect-change/quickstart/example?from=1&to=2;
+
 ```
 
 </TabItem>

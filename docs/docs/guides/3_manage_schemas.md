@@ -65,3 +65,8 @@ curl -X GET http://localhost:8000/v1beta1/namespaces/quickstart/schemas/example/
 # upload schema can be called multiple times. Stencil server will retain old version if it's already uploaded. This call won't create new version again. You can verify by using versions API again.
 curl -H "X-SourceURL:www.github.com/some-repo" -H "X-CommitSHA:some-commit-sha" -X POST http://localhost:8000/v1/namespaces/quickstart/schemas --data-binary "@file.desc"
 ```
+
+## Reconciliation API
+```bash
+$ curl -X GET http://localhost:8080/v1beta1/schema/detect-change/quickstart/example?from=1&to=2;
+```

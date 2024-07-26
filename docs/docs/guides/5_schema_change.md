@@ -43,7 +43,7 @@ Now, when the schema is uploaded in DB. Below things happened parallely in separ
 
 In case of any failure while publishing to Kafka or other issues, the `notification_events` table can be utilized to
 manage these failures. If the `success` field is `false` for a specific `namespace_id`, `schema_id`, and `version_id`,
-it indicates that the notification was not sent. In such scenarios, the `reconciliation API` can be used to resend the
+it indicates that the notification was not sent. In such scenarios, the [Reconciliation API](../reference/api.md#reconciliation-api) can be used to resend the
 notifications.
 
 ## Depth
@@ -101,3 +101,8 @@ E.g. If depth is `2` then the `impacted_schemas` for `Address` in below sample w
 
 ## Showing MR information 
 While calculating the impacted schemas, the `SchemaChangedEvent` will also include information about the source URL and commit SHA. The `source_url` represents the repository URL, and the `commit_sha` corresponds to the commit SHA associated with that version.
+
+## Reconciliation API
+```bash
+$ curl -X GET http://localhost:8080/v1beta1/schema/detect-change/quickstart/example?from=1&to=2;
+```
