@@ -4,5 +4,5 @@ import "embed"
 
 // Assets embed build folder
 //
-//go:embed build/*
+//go:embed all:build
 var Assets embed.FS

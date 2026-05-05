@@ -250,6 +250,53 @@ func TestIdentifySchemaChange(t *testing.T) {
 	})
 }
 
+func TestIdentifySchemaChangeNestedProto(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("should detect field change inside nested message and report parent as impacted", func(t *testing.T) {
+		svc, newRelic := getSvc()
+		request.Depth = 10
+		var called bool
+		// v1: Outer.Inner has only `value`. v2: Outer.Inner gains `extra_field`.
+		// Expected: both test.Outer and test.Outer.Inner appear in updated_schemas.
+		// test.Outer.Inner.updated_fields should contain "extra_field".
+		// test.Outer.Inner.impacted_schemas should contain test.Outer (it uses Inner).
+		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_nested_message_v1.proto"})
+		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_nested_message_v2.proto"})
+		request.OldData = oldData
+		request.NewData = newData
+		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
+		actual, err := svc.IdentifySchemaChange(ctx, request)
+		expected := getSchemaChangeEvent("./testdata/output/sce_nested_message_changed.json")
+		assert.Nil(t, err)
+		newRelic.AssertExpectations(t)
+		assert.True(t, called)
+		assert.NotNil(t, actual)
+		assertSchemaChangeEvent(t, expected, actual)
+	})
+
+	t.Run("should detect AnotherMessage as impacted when it references Outer.Inner which changed", func(t *testing.T) {
+		svc, newRelic := getSvc()
+		request.Depth = -1
+		var called bool
+		// v1: Outer.Inner has only `value`. AnotherMessage uses Outer.Inner directly.
+		// v2: Outer.Inner gains `extra_field`.
+		// Expected: test.AnotherMessage appears in impacted_schemas["test.Outer.Inner"].
+		oldData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_nested_cross_ref_v1.proto"})
+		newData := getDescriptorData(t, "./testdata/input", true, []string{"schema_with_nested_cross_ref_v2.proto"})
+		request.OldData = oldData
+		request.NewData = newData
+		newRelic.On("StartGenericSegment", mock.Anything, "Identify Schema Change").Return(func() { called = true })
+		actual, err := svc.IdentifySchemaChange(ctx, request)
+		expected := getSchemaChangeEvent("./testdata/output/sce_nested_cross_ref_changed.json")
+		assert.Nil(t, err)
+		newRelic.AssertExpectations(t)
+		assert.True(t, called)
+		assert.NotNil(t, actual)
+		assertSchemaChangeEvent(t, expected, actual)
+	})
+}
+
 func assertSchemaChangeEvent(t *testing.T, expected, actual *stencilv1beta1.SchemaChangedEvent) {
 	t.Helper()
 	assert.Equal(t, expected.NamespaceName, actual.NamespaceName)
