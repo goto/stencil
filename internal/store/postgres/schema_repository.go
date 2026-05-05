@@ -116,7 +116,7 @@ func (r *SchemaRepository) GetVersionCommitSHA(ctx context.Context, schemaID int
 func (r *SchemaRepository) GetSchemaID(ctx context.Context, ns string, sc string) (int32, error) {
 	var schemaID int32
 	err := pgxscan.Get(ctx, r.db, &schemaID, getSchemaIDByNSAndSchemaName, ns, sc)
-	return schemaID, wrapError(err, sc)
+	return schemaID, wrapError(err, "%s", sc)
 }
 
 const schemaInsertQuery = `

@@ -325,6 +325,9 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 		return nil, fmt.Errorf("got error while getting schema ID from DB %s", err.Error())
 	}
 	commitSHA, err := s.getVersionCommitSHA(ctx, schemaID, toVer)
+	if err != nil {
+		log.Printf("error getting commit SHA for version %d - %s", toVer, err.Error())
+	}
 	req := &changedetector.ChangeRequest{
 		NamespaceID: namespace,
 		SchemaName:  schemaName,

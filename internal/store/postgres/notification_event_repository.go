@@ -49,5 +49,5 @@ func (r *NotificationEventRepository) GetByNameSpaceSchemaVersionAndSuccess(ctx 
 func (r *NotificationEventRepository) Update(ctx context.Context, id string, success bool) (changedetector.NotificationEvent, error) {
 	updatedEvent := changedetector.NotificationEvent{}
 	err := pgxscan.Get(ctx, r.db, &updatedEvent, notificationEventsUpdateQuery, id, success)
-	return updatedEvent, wrapError(err, id)
+	return updatedEvent, wrapError(err, "%s", id)
 }
