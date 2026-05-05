@@ -180,24 +180,6 @@ func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMa
 }
 
 /*
-packageMessageMap is map having all the messages inside a package
-[com.goto.bookinglog][BookingLogMessage]=BookingLogMessageDescriptor
-*/
-func getPackageMessageMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[string]map[string]*descriptor.DescriptorProto {
-	packageMessageMap := make(map[string]map[string]*descriptor.DescriptorProto)
-	for _, fileDescriptor := range fileDescriptorSet.GetFile() {
-		pkgName := fileDescriptor.GetPackage()
-		if _, ok := packageMessageMap[pkgName]; !ok {
-			packageMessageMap[pkgName] = make(map[string]*descriptor.DescriptorProto)
-		}
-		for _, messageDescriptor := range fileDescriptor.GetMessageType() {
-			packageMessageMap[pkgName][messageDescriptor.GetName()] = messageDescriptor
-		}
-	}
-	return packageMessageMap
-}
-
-/*
 packageEnumMap is map having all the enums inside a package
 [com.goto.bookinglog][ServiceTypeEnum]=ServiceTypeEnumDescriptor
 */
@@ -213,15 +195,6 @@ func getPackageEnumMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[stri
 		}
 	}
 	return packageEnumMap
-}
-
-func getMessageDescriptor(packageMessageMap map[string]map[string]*descriptor.DescriptorProto, packageName, messageName string) *descriptor.DescriptorProto {
-	if packageMap, found := packageMessageMap[packageName]; found {
-		if descriptor, found := packageMap[messageName]; found {
-			return descriptor
-		}
-	}
-	return nil
 }
 
 func getEnumDescriptor(packageEnumMap map[string]map[string]*descriptor.EnumDescriptorProto, packageName, enumName string) *descriptor.EnumDescriptorProto {
