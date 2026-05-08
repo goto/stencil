@@ -176,28 +176,26 @@ func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersio
 	}, err
 }
 
-func (a *API) GetImpactedSchemas(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
+func (a *API) GetLineage(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
 	namespaceID := pathParams["namespace_id"]
 	schemaName := pathParams["schema_name"]
 
-	maxDepth := 10
-	if d := req.URL.Query().Get("max_depth"); d != "" {
+	level := 10
+	if d := req.URL.Query().Get("level"); d != "" {
 		if parsed, err := strconv.Atoi(d); err == nil && parsed > 0 {
-			maxDepth = parsed
+			level = parsed
 		}
 	}
 
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		return err
+	direction := schema.LineageDirection(req.URL.Query().Get("direction"))
+	if direction == "" {
+		direction = schema.LineageDirectionBoth
+	}
+	if _, err := schema.NormalizeLineageDirection(direction); err != nil {
+		return &runtime.HTTPStatusError{HTTPStatus: http.StatusBadRequest, Err: err}
 	}
 
-	var impactReq schema.ImpactRequest
-	if err := json.Unmarshal(body, &impactReq); err != nil {
-		return err
-	}
-
-	resp, err := a.schema.GetImpactedSchemas(req.Context(), namespaceID, schemaName, impactReq.Fields, maxDepth)
+	resp, err := a.schema.GetLineage(req.Context(), namespaceID, schemaName, level, direction)
 	if err != nil {
 		return err
 	}

@@ -167,29 +167,29 @@ func (_m *SchemaService) Get(ctx context.Context, namespace string, schemaName s
 	return r0, r1, r2
 }
 
-// GetImpactedSchemas provides a mock function with given fields: ctx, namespaceID, schemaName, fields, maxDepth
-func (_m *SchemaService) GetImpactedSchemas(ctx context.Context, namespaceID string, schemaName string, fields []schema.FieldChange, maxDepth int) (*schema.ImpactResponse, error) {
-	ret := _m.Called(ctx, namespaceID, schemaName, fields, maxDepth)
+// GetLineage provides a mock function with given fields: ctx, namespaceID, schemaName, level, direction
+func (_m *SchemaService) GetLineage(ctx context.Context, namespaceID string, schemaName string, level int, direction schema.LineageDirection) (*schema.LineageResponse, error) {
+	ret := _m.Called(ctx, namespaceID, schemaName, level, direction)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetImpactedSchemas")
+		panic("no return value specified for GetLineage")
 	}
 
-	var r0 *schema.ImpactResponse
+	var r0 *schema.LineageResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []schema.FieldChange, int) (*schema.ImpactResponse, error)); ok {
-		return rf(ctx, namespaceID, schemaName, fields, maxDepth)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int, schema.LineageDirection) (*schema.LineageResponse, error)); ok {
+		return rf(ctx, namespaceID, schemaName, level, direction)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []schema.FieldChange, int) *schema.ImpactResponse); ok {
-		r0 = rf(ctx, namespaceID, schemaName, fields, maxDepth)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int, schema.LineageDirection) *schema.LineageResponse); ok {
+		r0 = rf(ctx, namespaceID, schemaName, level, direction)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*schema.ImpactResponse)
+			r0 = ret.Get(0).(*schema.LineageResponse)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, []schema.FieldChange, int) error); ok {
-		r1 = rf(ctx, namespaceID, schemaName, fields, maxDepth)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int, schema.LineageDirection) error); ok {
+		r1 = rf(ctx, namespaceID, schemaName, level, direction)
 	} else {
 		r1 = ret.Error(1)
 	}
