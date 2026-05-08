@@ -345,6 +345,20 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	return sce, nil
 }
 
+// GetImpactedSchemas returns all schemas in the namespace that transitively depend on
+// schemaName, given the proposed field-level changes. maxDepth limits BFS traversal
+// (0 or negative → default of 10).
+func (s *Service) GetImpactedSchemas(ctx context.Context, namespaceID, schemaName string, fields []FieldChange, maxDepth int) (*ImpactResponse, error) {
+	if maxDepth <= 0 {
+		maxDepth = 10
+	}
+	_, data, err := s.GetLatest(ctx, namespaceID, schemaName)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching latest schema for %s/%s: %w", namespaceID, schemaName, err)
+	}
+	return computeImpact(data, namespaceID, schemaName, fields, maxDepth)
+}
+
 func (s *Service) ValidateVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {
 	var toVer, fromVer int32
 	var err error

@@ -2,7 +2,7 @@ NAME="github.com/goto/stencil"
 VERSION=$(shell git describe --always --tags 2>/dev/null)
 PROTON_COMMIT := "4fb568dd9af09c7efeac3e60fc3a999e239d419a"
 EXCLUDE_FILES :=./test_utils/testutils.go
-.PHONY: all build test clean dist vet proto install ui
+.PHONY: all build test clean dist vet proto install ui mock
 
 all: build
 
@@ -45,3 +45,22 @@ ui:
 
 help: ## Display this help message
 	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+MOCKERY := mockery
+
+mock: ## Generate mocks using installed mockery
+	@echo " > generating mocks for internal/api"
+	$(MOCKERY) --name=SchemaService --dir=internal/api --output=internal/api/mocks --outpkg=mocks --with-expecter=false --case=snake
+	$(MOCKERY) --name=NamespaceService --dir=internal/api --output=internal/api/mocks --outpkg=mocks --with-expecter=false --case=snake
+	$(MOCKERY) --name=SearchService --dir=internal/api --output=internal/api/mocks --outpkg=mocks --with-expecter=false --case=snake
+	@echo " > generating mocks for core/schema"
+	$(MOCKERY) --name=Repository --structname=SchemaRepository --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --filename=schema_repository.go
+	$(MOCKERY) --name=Provider --structname=SchemaProvider --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --filename=schema_provider.go
+	$(MOCKERY) --name=Cache --structname=SchemaCache --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --filename=schema_cache.go
+	$(MOCKERY) --name=ParsedSchema --structname=ParsedSchema --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --filename=schema_parsed.go
+	$(MOCKERY) --name=ChangeDetectorService --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --case=snake
+	$(MOCKERY) --name=Producer --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --case=snake
+	$(MOCKERY) --name=NotificationEventRepository --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --case=snake
+	$(MOCKERY) --name=NamespaceService --dir=core/schema --output=core/schema/mocks --outpkg=mocks --with-expecter=false --case=snake
+	@echo " > mock generation complete"
+

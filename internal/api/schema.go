@@ -176,6 +176,36 @@ func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersio
 	}, err
 }
 
+func (a *API) GetImpactedSchemas(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
+	namespaceID := pathParams["namespace_id"]
+	schemaName := pathParams["schema_name"]
+
+	maxDepth := 10
+	if d := req.URL.Query().Get("max_depth"); d != "" {
+		if parsed, err := strconv.Atoi(d); err == nil && parsed > 0 {
+			maxDepth = parsed
+		}
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return err
+	}
+
+	var impactReq schema.ImpactRequest
+	if err := json.Unmarshal(body, &impactReq); err != nil {
+		return err
+	}
+
+	resp, err := a.schema.GetImpactedSchemas(req.Context(), namespaceID, schemaName, impactReq.Fields, maxDepth)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(resp)
+}
+
 func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Request, pathParams map[string]string) error {
 	namespaceID := pathParams["namespaceId"]
 	schemaName := pathParams["schemaName"]
