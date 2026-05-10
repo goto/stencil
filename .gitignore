@@ -23,5 +23,9 @@ vendor/
 .env
 !*/stencil
 /stencil
+/stencil_bin
 /config.yaml
+/config.local.yaml
+/config.*.local.yaml
+!/config.example.yaml
 node_modules

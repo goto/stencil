@@ -422,6 +422,70 @@
         ]
       }
     },
+    "/v1beta1/namespaces/{namespace_id}/schemas/{schema_name}/lineage": {
+      "get": {
+        "summary": "Get lineage graph for a schema",
+        "operationId": "StencilService_GetLineage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1beta1LineageResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters (for example unsupported direction).",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "schema_name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum traversal depth. Defaults to 10 when omitted or <= 0."
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "both",
+              "downstream",
+              "upstream"
+            ],
+            "default": "both",
+            "description": "Traversal direction for lineage discovery."
+          }
+        ],
+        "tags": [
+          "schema"
+        ]
+      }
+    },
     "/v1beta1/search": {
       "get": {
         "summary": "Global Search API",
@@ -685,6 +749,75 @@
         }
       }
     },
+    "v1beta1LineageResponse": {
+      "type": "object",
+      "properties": {
+        "root_schema": {
+          "$ref": "#/definitions/v1beta1RootSchemaRef"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "both",
+            "downstream",
+            "upstream"
+          ]
+        },
+        "downstream": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1beta1LineageSchema"
+          }
+        },
+        "upstream": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1beta1LineageSchema"
+          }
+        },
+        "summary": {
+          "$ref": "#/definitions/v1beta1LineageSummary"
+        }
+      }
+    },
+    "v1beta1LineageSchema": {
+      "type": "object",
+      "properties": {
+        "namespace_id": {
+          "type": "string"
+        },
+        "schema_name": {
+          "type": "string"
+        },
+        "level": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1beta1LineageSummary": {
+      "type": "object",
+      "properties": {
+        "downstream_count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "upstream_count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "v1beta1ListNamespacesResponse": {
       "type": "object",
       "properties": {
@@ -743,6 +876,17 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        }
+      }
+    },
+    "v1beta1RootSchemaRef": {
+      "type": "object",
+      "properties": {
+        "namespace_id": {
+          "type": "string"
+        },
+        "schema_name": {
+          "type": "string"
         }
       }
     },

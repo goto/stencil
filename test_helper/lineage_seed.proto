@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package gotocompany.events;
+
+// Address  ←  User  ←  Order  ←  Payment
+message Address {}
+
+message User {
+  Address address = 1;
+}
+
+message Order {
+  User user = 1;
+}
+
+message Payment {
+  Order order = 1;
+}
+
