@@ -40,7 +40,9 @@ const (
 )
 
 // Each schema name matches a proto message name so GetLineage can find the root FQN.
-var schemaNames = []string{"Address", "User", "Order", "Payment"}
+// Nested messages (Order.Item, Payment.Receipt) are traversed automatically via the
+// same descriptor — no separate upload needed for them.
+var schemaNames = []string{"Address", "User", "Product", "Invoice", "Order", "Payment", "Item", "Receipt", "Cart", "Ledger"}
 
 func main() {
 	// ── 1. Build FileDescriptorSet from proto ───────────────────────────────
@@ -52,6 +54,7 @@ func main() {
 
 	// ── 3. Upload schema under each message name ─────────────────────────
 	for _, name := range schemaNames {
+		deleteSchema(name) // clear stale versions before re-seeding
 		uploadSchema(name, descBytes)
 	}
 
@@ -127,6 +130,19 @@ func createNamespace() {
 	}
 }
 
+func deleteSchema(schemaName string) {
+	url := fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas/%s", baseURL, namespaceID, schemaName)
+	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return // best-effort
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		fmt.Printf("⟳ Schema '%s/%s' deleted before re-seed\n", namespaceID, schemaName)
+	}
+}
+
 func uploadSchema(schemaName string, descBytes []byte) {
 	url := fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas/%s", baseURL, namespaceID, schemaName)
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(descBytes))
@@ -149,20 +165,68 @@ func uploadSchema(schemaName string, descBytes []byte) {
 }
 
 func printCurls() {
-	// Lineage is keyed by the schema name = proto message name
-	// Our main focus is "User": upstream=Address, downstream=Order→Payment
-	lineageBase := fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas/User/lineage", baseURL, namespaceID)
-	cases := []struct {
-		label string
-		url   string
-	}{
-		{"Lineage for 'User' — direction=both (default), level=10\n  Expected: upstream=[Address], downstream=[Order, Payment]", lineageBase + "?level=10&direction=both"},
-		{"Lineage for 'User' — upstream only\n  Expected: [Address]", lineageBase + "?direction=upstream"},
-		{"Lineage for 'User' — downstream only\n  Expected: [Order, Payment]", lineageBase + "?direction=downstream"},
-		{"Lineage for 'User' — downstream, max 1 level (direct only)\n  Expected: [Order]", lineageBase + "?direction=downstream&level=1"},
-		{"Lineage for 'Order' — both\n  Expected: upstream=[User, Address], downstream=[Payment]", fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas/Order/lineage?direction=both", baseURL, namespaceID)},
-		{"Lineage for 'Address' — downstream only\n  Expected: [User, Order, Payment]", fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas/Address/lineage?direction=downstream", baseURL, namespaceID)},
-		{"Invalid direction — expects HTTP 400", lineageBase + "?direction=sideways"},
+	type cas struct{ label, url string }
+
+	base := fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas", baseURL, namespaceID)
+
+	cases := []cas{
+		{
+			"Lineage for 'User' — both, level=10\n  Expected: upstream=[Address], downstream=[Order, Payment]",
+			base + "/User/lineage?level=10&direction=both",
+		},
+		{
+			"Lineage for 'User' — upstream only\n  Expected: [Address]",
+			base + "/User/lineage?direction=upstream",
+		},
+		{
+			"Lineage for 'User' — downstream only\n  Expected: [Order, Payment]",
+			base + "/User/lineage?direction=downstream",
+		},
+		{
+			"Lineage for 'User' — downstream, level=1 (direct only)\n  Expected: [Order]",
+			base + "/User/lineage?direction=downstream&level=1",
+		},
+		{
+			"Lineage for 'Order' — both\n  Expected: upstream=[User, Address], downstream=[Payment]",
+			base + "/Order/lineage?direction=both",
+		},
+		{
+			"Lineage for 'Address' — downstream\n  Expected: [User, Order, Payment]",
+			base + "/Address/lineage?direction=downstream",
+		},
+		{
+			// Nested message: Order.Item depends on Product;
+			// GetLineage for 'Product' will find it as the root FQN 'gotocompany.events.Order.Item.Product'? No —
+			// Product is a top-level message. Order.Item's field has TypeName='.gotocompany.events.Product'.
+			// Lineage(Product) downstream → Order.Item (nested msg inside Order)
+			"Inner use-case: Lineage for 'Product' — downstream\n  Expected: downstream=[Item] (Order.Item depends on Product)",
+			base + "/Product/lineage?direction=downstream",
+		},
+		{
+			// Nested message: Payment.Receipt depends on Invoice
+			"Inner use-case: Lineage for 'Invoice' — downstream\n  Expected: downstream=[Receipt] (Payment.Receipt depends on Invoice)",
+			base + "/Invoice/lineage?direction=downstream",
+		},
+		{
+			"Outer ref use-case: Lineage for 'Cart' — upstream\n  Expected: upstream=[Item, Product, User, Address] (Cart uses Order.Item which uses Product; also uses User)",
+			base + "/Cart/lineage?direction=upstream",
+		},
+		{
+			"Outer ref use-case: Lineage for 'Ledger' — upstream\n  Expected: upstream=[Receipt, Invoice] (Ledger uses Payment.Receipt which uses Invoice)",
+			base + "/Ledger/lineage?direction=upstream",
+		},
+		{
+			"Outer ref use-case: Lineage for 'Item' — downstream\n  Expected: downstream=[Order, Payment, Cart] (Item is used by both Order (parent) and Cart (outer ref))",
+			base + "/Item/lineage?direction=downstream",
+		},
+		{
+			"Outer ref use-case: Lineage for 'Receipt' — downstream\n  Expected: downstream=[Payment, Ledger] (Receipt is used by both Payment (parent) and Ledger (outer ref))",
+			base + "/Receipt/lineage?direction=downstream",
+		},
+		{
+			"Invalid direction — expects HTTP 400",
+			base + "/User/lineage?direction=sideways",
+		},
 	}
 
 	for _, c := range cases {
