@@ -325,6 +325,9 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 		return nil, fmt.Errorf("got error while getting schema ID from DB %s", err.Error())
 	}
 	commitSHA, err := s.getVersionCommitSHA(ctx, schemaID, toVer)
+	if err != nil {
+		log.Printf("error getting commit SHA for version %d - %s", toVer, err.Error())
+	}
 	req := &changedetector.ChangeRequest{
 		NamespaceID: namespace,
 		SchemaName:  schemaName,
@@ -343,6 +346,19 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 		return sce, err
 	}
 	return sce, nil
+}
+
+// GetLineage returns schema lineage in the namespace for the given schema.
+// level limits traversal depth (0 or negative → default of 10).
+func (s *Service) GetLineage(ctx context.Context, namespaceID, schemaName string, level int, direction LineageDirection) (*LineageResponse, error) {
+	if level <= 0 {
+		level = 10
+	}
+	_, data, err := s.GetLatest(ctx, namespaceID, schemaName)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching latest schema for %s/%s: %w", namespaceID, schemaName, err)
+	}
+	return computeLineage(data, namespaceID, schemaName, level, direction)
 }
 
 func (s *Service) ValidateVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {

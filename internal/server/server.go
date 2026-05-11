@@ -64,11 +64,11 @@ func Start(cfg config.Config) {
 
 	changeDetectorService := changedetector.NewService(newRelic)
 
-	fmt.Printf("Kafka Address %s", cfg.KafkaProducer.BootstrapServer)
-	if err != nil {
-		log.Fatal("Error creating StatsD client:", err)
+	var producer schema.Producer = &schema.NoopProducer{}
+	if cfg.SchemaChange.Enable {
+		fmt.Printf("Kafka Address %s\n", cfg.KafkaProducer.BootstrapServer)
+		producer = kafka.NewWriter(cfg.KafkaProducer.BootstrapServer, cfg.KafkaProducer.Timeout, cfg.KafkaProducer.Retries)
 	}
-	producer := kafka.NewWriter(cfg.KafkaProducer.BootstrapServer, cfg.KafkaProducer.Timeout, cfg.KafkaProducer.Retries)
 
 	notificationEventRepo := postgres.NewNotificationEventRepository(db)
 
@@ -114,11 +114,12 @@ func Start(cfg config.Config) {
 	}
 
 	rtr := mux.NewRouter()
-	spaHandler, err := spa.Handler(ui.Assets, "build", "index.html", false)
-	if err != nil {
-		log.Fatalln("Failed to load spa:", err)
+	spaHandler, spaErr := spa.Handler(ui.Assets, "build", "index.html", false)
+	if spaErr != nil {
+		log.Printf("Warning: Failed to load spa (UI will be unavailable): %v", spaErr)
+	} else {
+		rtr.PathPrefix("/ui").Handler(http.StripPrefix("/ui", spaHandler))
 	}
-	rtr.PathPrefix("/ui").Handler(http.StripPrefix("/ui", spaHandler))
 	baseMux.Handle("/", middleware(gatewayMux))
 	runWithGracefulShutdown(&cfg, grpcHandlerFunc(s, baseMux, rtr), func() {
 		conn.Close()

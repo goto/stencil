@@ -41,6 +41,7 @@ type SchemaService interface {
 	List(ctx context.Context, namespaceID string) ([]schema.Schema, error)
 	ListVersions(ctx context.Context, namespaceID string, schemaName string) ([]int32, error)
 	DetectSchemaChange(namespace string, schemaName string, fromVersion string, toVersion string, depth string) (*stencilv1beta1.SchemaChangedEvent, error)
+	GetLineage(ctx context.Context, namespaceID, schemaName string, level int, direction schema.LineageDirection) (*schema.LineageResponse, error)
 }
 
 type SearchService interface {
@@ -75,6 +76,7 @@ func (a *API) RegisterSchemaHandlers(mux *runtime.ServeMux, app *newrelic.Applic
 	mux.HandlePath(wrapHandler(app, "POST", "/v1beta1/namespaces/{namespace}/schemas/{name}", wrapErrHandler(mux, a.HTTPUpload)))
 	mux.HandlePath(wrapHandler(app, "POST", "/v1beta1/namespaces/{namespace}/schemas/{name}/check", wrapErrHandler(mux, a.HTTPCheckCompatibility)))
 	mux.HandlePath(wrapHandler(app, "GET", "/v1beta1/schema/detect-change/{namespaceId}/{schemaName}", wrapErrHandler(mux, a.DetectSchemaChange)))
+	mux.HandlePath(wrapHandler(app, "GET", "/v1beta1/namespaces/{namespace_id}/schemas/{schema_name}/lineage", wrapErrHandler(mux, a.GetLineage)))
 }
 
 func handleSchemaResponse(mux *runtime.ServeMux, getSchemaFn getSchemaData) runtime.HandlerFunc {

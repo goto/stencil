@@ -83,6 +83,11 @@ type Producer interface {
 	Write(topic string, protoMessage proto.Message) error
 }
 
+// NoopProducer is a no-op implementation of Producer used when schema change events are disabled.
+type NoopProducer struct{}
+
+func (n *NoopProducer) Write(_ string, _ proto.Message) error { return nil }
+
 type NotificationEventRepository interface {
 	Create(ctx context.Context, event changedetector.NotificationEvent) (changedetector.NotificationEvent, error)
 	Update(ctx context.Context, Id string, success bool) (changedetector.NotificationEvent, error)

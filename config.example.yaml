@@ -1,0 +1,17 @@
+port: 8080
+timeout: 5s
+newrelic:
+  appname: stencil-local
+  enabled: false
+  license: "<newrelic-license-key>"
+db:
+  connectionstring: "postgres://<username>:<password>@localhost:5432/stencil?sslmode=disable"
+kafkaProducer:
+  bootstrapserver: "localhost:9092"
+  retries: 5
+  timeout: 5000
+schemachange:
+  kafkatopic: "schema_change"
+  depth: 5
+  enable: false
+

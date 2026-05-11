@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package gotocompany.events;
+
+// ─── Dependency graph ────────────────────────────────────────────────────────
+//
+//  Address  <──  User  <──  Order  <──  Payment
+//                              │    │           └── Payment.Receipt  <── Invoice
+//                              │    └── Order.Item  <── Product          │
+//                              │               └──────────────────── Cart (outer ref to Order.Item)
+//                              └──────────────────────────────────── Ledger (outer ref to Payment.Receipt)
+//
+// Upstream  (what a message depends on)
+// Downstream (what depends on that message)
+//
+// Examples:
+//   Lineage(User)        upstream=[Address]              downstream=[Order, Payment, Cart, Ledger, ...]
+//   Lineage(Order)       upstream=[User, Address]        downstream=[Payment, Cart, Ledger, ...]
+//   Lineage(Product)     upstream=[]                     downstream=[Item, Order, Cart, ...]
+//   Lineage(Invoice)     upstream=[]                     downstream=[Receipt, Payment, Ledger]
+//   Lineage(Order.Item)  upstream=[Product]              downstream=[Order (parent), Cart (outer ref)]
+//   Lineage(Payment.Receipt) upstream=[Invoice]          downstream=[Payment (parent), Ledger (outer ref)]
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Leaf entity — no dependencies
+message Address {
+  string street = 1;
+  string city   = 2;
+  string zip    = 3;
+}
+
+// Depends on: Address
+message User {
+  string  id      = 1;
+  string  name    = 2;
+  Address address = 3;
+}
+
+// Leaf entity — no dependencies
+message Product {
+  string id    = 1;
+  string name  = 2;
+  double price = 3;
+}
+
+// Invoice is produced independently; Payment.Receipt references it
+message Invoice {
+  string id     = 1;
+  double amount = 2;
+}
+
+// Depends on: User
+// Contains nested message: Order.Item (depends on Product)
+message Order {
+  string id   = 1;
+  User   user = 2;
+
+  // Inner use-case: nested message that introduces its own dependency (Product)
+  message Item {
+    Product product  = 1;
+    int32   quantity = 2;
+  }
+
+  repeated Item items = 3;
+}
+
+// Depends on: Order
+// Contains nested message: Payment.Receipt (depends on Invoice)
+message Payment {
+  string id    = 1;
+  Order  order = 2;
+
+  // Inner use-case: nested message that introduces its own dependency (Invoice)
+  message Receipt {
+    Invoice invoice    = 1;
+    string  issued_at  = 2;
+  }
+
+  Receipt receipt = 3;
+}
+
+// Outer use-case: references Order.Item directly (not through Order)
+// Shows that a nested type can be used as a first-class dependency outside its parent.
+message Cart {
+  string     id       = 1;
+  User       user     = 2;
+  Order.Item item     = 3; // direct reference to the nested type
+}
+
+// Outer use-case: references Payment.Receipt directly (not through Payment)
+// Shows that a nested type can surface in an outer message's lineage.
+message Ledger {
+  string          id      = 1;
+  Payment.Receipt receipt = 2; // direct reference to the nested type
+}
+

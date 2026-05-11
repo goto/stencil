@@ -176,6 +176,34 @@ func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersio
 	}, err
 }
 
+func (a *API) GetLineage(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
+	namespaceID := pathParams["namespace_id"]
+	schemaName := pathParams["schema_name"]
+
+	level := 10
+	if d := req.URL.Query().Get("level"); d != "" {
+		if parsed, err := strconv.Atoi(d); err == nil && parsed > 0 {
+			level = parsed
+		}
+	}
+
+	direction := schema.LineageDirection(req.URL.Query().Get("direction"))
+	if direction == "" {
+		direction = schema.LineageDirectionBoth
+	}
+	if _, err := schema.NormalizeLineageDirection(direction); err != nil {
+		return &runtime.HTTPStatusError{HTTPStatus: http.StatusBadRequest, Err: err}
+	}
+
+	resp, err := a.schema.GetLineage(req.Context(), namespaceID, schemaName, level, direction)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(resp)
+}
+
 func (a *API) DetectSchemaChange(writer http.ResponseWriter, request *http.Request, pathParams map[string]string) error {
 	namespaceID := pathParams["namespaceId"]
 	schemaName := pathParams["schemaName"]
