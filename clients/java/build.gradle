@@ -10,7 +10,8 @@ plugins {
 }
 
 group 'com.gotocompany'
-version '0.7.0'
+version findProperty('releaseVersion') ?: '0.7.0'
+def releaseSigningEnabled = (findProperty('releaseSigning') ?: 'true').toBoolean()
 
 repositories {
     mavenLocal()
@@ -74,6 +75,7 @@ publishing {
 
     publications {
         maven(MavenPublication) {
+            from components.java
             pom {
                 name = 'Stencil'
                 description = 'Library to pull latest proto descriptors from a remote server'
@@ -96,17 +98,20 @@ publishing {
                         email = '41898282+github-actions[bot]@users.noreply.github.com'
                     }
                 }
-                from components.java
             }
         }
     }
 }
 
 signing {
-   sign publishing.publications.maven
+    required { releaseSigningEnabled }
+    if (releaseSigningEnabled) {
+        sign publishing.publications.maven
+    }
 }
 
 nexusPublishing {
+    packageGroup = 'com.gotocompany'
     repositories {
         sonatype {
             nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))

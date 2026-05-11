@@ -2,22 +2,58 @@ name: Release Stencil JS Client
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "js-client-v*.*.*"
   workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: "JS client version to publish (for example: 0.5.1)"
+        required: true
+        type: string
 
 jobs:
   publish-js-client:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+      - name: Resolve release version
+        id: release
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.releaseVersion }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            version="${GITHUB_REF_NAME#js-client-v}"
+          else
+            version="${INPUT_VERSION#v}"
+          fi
+
+          if [ -z "$version" ]; then
+            echo "::error::Unable to determine the JS client release version."
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
         with:
-          node-version: "12.x"
+          node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
           scope: "@goto-company"
-      - run: npm install
+      - run: npm ci
+        working-directory: clients/js
+      - name: Set package version
+        run: npm version --no-git-tag-version "${{ steps.release.outputs.version }}"
+        working-directory: clients/js
+      - name: Skip if version already exists on npm
+        id: published
+        run: |
+          if npm view "@goto-company/stencil@${{ steps.release.outputs.version }}" version --silent >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "JS client version ${{ steps.release.outputs.version }} is already published. Skipping release."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
         working-directory: clients/js
       - run: npm publish --access public
+        if: steps.published.outputs.published != 'true'
         working-directory: clients/js
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
