@@ -2,15 +2,6 @@
 
 ## Version: 0.8.7
 
-## Postman import
-
-- Collection: [`stencil.postman_collection.json`](/assets/stencil.postman_collection.json)
-- Local environment: [`stencil.local.postman_environment.json`](/assets/stencil.local.postman_environment.json)
-
-The collection defaults `baseUrl` to `http://localhost:8080`, which matches the server default in `config/config.go`. If your Stencil instance is running on another port such as `8000`, update `baseUrl` in Postman after import.
-
-For schema upload and compatibility-check requests, set `schemaBinaryFile` to a local file path in Postman before sending the request.
-
 ### /v1beta1/namespaces
 
 #### GET
