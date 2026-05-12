@@ -1,14 +1,5 @@
 name: Validate Client Release
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/release-*.yml"
-      - ".github/workflows/validate-client-release.yml"
-      - "clients/java/**"
-      - "clients/clojure/**"
-      - "clients/js/**"
   workflow_dispatch:
     inputs:
       releaseVersion:
@@ -25,15 +16,10 @@ jobs:
         id: version
         env:
           INPUT_VERSION: ${{ github.event.inputs.releaseVersion }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           base_version="${INPUT_VERSION:-0.0.0}"
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            version="${base_version}-pr.${PR_NUMBER}.${RUN_NUMBER}"
-          else
-            version="${base_version}-rc.${RUN_NUMBER}"
-          fi
+          version="${base_version}-rc.${RUN_NUMBER}"
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up JDK 8
@@ -61,15 +47,10 @@ jobs:
         id: version
         env:
           INPUT_VERSION: ${{ github.event.inputs.releaseVersion }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           base_version="${INPUT_VERSION:-0.0.0}"
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            version="${base_version}-pr.${PR_NUMBER}.${RUN_NUMBER}"
-          else
-            version="${base_version}-rc.${RUN_NUMBER}"
-          fi
+          version="${base_version}-rc.${RUN_NUMBER}"
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up JDK 8
@@ -129,15 +110,10 @@ jobs:
         id: version
         env:
           INPUT_VERSION: ${{ github.event.inputs.releaseVersion }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           base_version="${INPUT_VERSION:-0.0.0}"
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            version="${base_version}-pr.${PR_NUMBER}.${RUN_NUMBER}"
-          else
-            version="${base_version}-rc.${RUN_NUMBER}"
-          fi
+          version="${base_version}-rc.${RUN_NUMBER}"
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
