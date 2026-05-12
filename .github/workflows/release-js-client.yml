@@ -2,6 +2,7 @@ name: Release Stencil JS Client
 on:
   push:
     tags:
+      - "v*.*.*"
       - "js-client-v*.*.*"
   workflow_dispatch:
     inputs:
@@ -22,6 +23,7 @@ jobs:
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
             version="${GITHUB_REF_NAME#js-client-v}"
+            version="${version#v}"
           else
             version="${INPUT_VERSION#v}"
           fi

@@ -2,6 +2,7 @@ name: Release Stencil Clojure Client
 on:
   push:
     tags:
+      - "v*.*.*"
       - "clojure-client-v*.*.*"
   workflow_dispatch:
     inputs:
@@ -22,6 +23,7 @@ jobs:
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
             version="${GITHUB_REF_NAME#clojure-client-v}"
+            version="${version#v}"
           else
             version="${INPUT_VERSION#v}"
           fi
