@@ -234,11 +234,3 @@ func computeLineage(data []byte, namespaceID, schemaID, rootType string, level i
 
 	return resp, nil
 }
-
-// lastSegment returns the last dot-separated segment of a fully-qualified name.
-func lastSegment(fqn string) string {
-	if idx := strings.LastIndex(fqn, "."); idx >= 0 {
-		return fqn[idx+1:]
-	}
-	return fqn
-}
