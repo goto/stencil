@@ -348,17 +348,18 @@ func (s *Service) DetectSchemaChange(namespace string, schemaName string, fromVe
 	return sce, nil
 }
 
-// GetLineage returns schema lineage in the namespace for the given schema.
+// GetLineage returns lineage in a schema container for the given root type.
+// schemaID identifies the stored schema artifact; rootType is the message to trace.
 // level limits traversal depth (0 or negative → default of 10).
-func (s *Service) GetLineage(ctx context.Context, namespaceID, schemaName string, level int, direction LineageDirection) (*LineageResponse, error) {
+func (s *Service) GetLineage(ctx context.Context, namespaceID, schemaID, rootType string, level int, direction LineageDirection) (*LineageResponse, error) {
 	if level <= 0 {
 		level = 10
 	}
-	_, data, err := s.GetLatest(ctx, namespaceID, schemaName)
+	_, data, err := s.GetLatest(ctx, namespaceID, schemaID)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching latest schema for %s/%s: %w", namespaceID, schemaName, err)
+		return nil, fmt.Errorf("error fetching latest schema for %s/%s: %w", namespaceID, schemaID, err)
 	}
-	return computeLineage(data, namespaceID, schemaName, level, direction)
+	return computeLineage(data, namespaceID, schemaID, rootType, level, direction)
 }
 
 func (s *Service) ValidateVersions(ctx context.Context, namespace string, schemaName string, fromVersion string, toVersion string) (int32, int32, error) {
