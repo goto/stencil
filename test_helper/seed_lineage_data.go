@@ -1,24 +1,14 @@
 //go:build ignore
 
-// seed_lineage_data.go seeds the local Stencil server with protobuf schemas
-// that demonstrate multi-level lineage relationships.
+// seed_lineage_data.go runs an end-to-end lineage API check:
+//  1. compile descriptor from test_helper/lineage_seed.proto
+//  2. upload ONE schema container (like real usage: esb-log-entities)
+//  3. call lineage using /types/<FQN proto message>/lineage
+//  4. assert expected upstream/downstream nodes using full FQNs in the response
 //
-// Schema hierarchy (package: gotocompany.data):
+// Run:
 //
-//	Address  {}
-//	User     { address Address }        → User depends on Address
-//	Order    { user    User    }        → Order depends on User
-//	Payment  { order   Order   }        → Payment depends on Order
-//
-// Lineage for "User":
-//
-//	upstream   → Address
-//	downstream → Order → Payment
-//
-// Run: go run ./test_helper/seed_lineage_data.go
-//
-// By default this script compiles ./test_helper/lineage_seed.proto to a
-// temporary descriptor set via protoc.
+//	go run ./test_helper/seed_lineage_data.go
 package main
 
 import (
@@ -31,38 +21,55 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 )
 
 const (
 	baseURL     = "http://localhost:8080"
 	namespaceID = "gotocompany"
+	schemaID    = "esb-log-entities"
 	protoPath   = "./test_helper/lineage_seed.proto"
 )
 
-// Each schema name matches a proto message name so GetLineage can find the root FQN.
-// Nested messages (Order.Item, Payment.Receipt) are traversed automatically via the
-// same descriptor — no separate upload needed for them.
-var schemaNames = []string{"Address", "User", "Product", "Invoice", "Order", "Payment", "Item", "Receipt", "Cart", "Ledger"}
+type lineageResponse struct {
+	Direction  string        `json:"direction"`
+	Downstream []lineageNode `json:"downstream"`
+	Upstream   []lineageNode `json:"upstream"`
+	Summary    struct {
+		DownstreamCount int `json:"downstream_count"`
+		UpstreamCount   int `json:"upstream_count"`
+		TotalCount      int `json:"total_count"`
+	} `json:"summary"`
+}
+
+type lineageNode struct {
+	TypeName string `json:"type_name"`
+}
+
+type e2eCase struct {
+	name               string
+	typeName           string
+	query              string
+	wantStatus         int
+	wantDownstreamSet  []string
+	wantUpstreamSet    []string
+	wantDownstreamSize int
+	wantUpstreamSize   int
+}
 
 func main() {
-	// ── 1. Build FileDescriptorSet from proto ───────────────────────────────
+	// 1) Compile proto into descriptor bytes
 	descBytes := buildDescriptorFromProto()
 	fmt.Printf("✓ FileDescriptorSet built (%d bytes)\n", len(descBytes))
 
-	// ── 2. Create namespace ─────────────────────────────────────────────────
+	// 2) Create namespace and seed one schema container
 	createNamespace()
+	deleteSchema(schemaID)
+	uploadSchema(schemaID, descBytes)
 
-	// ── 3. Upload schema under each message name ─────────────────────────
-	for _, name := range schemaNames {
-		deleteSchema(name) // clear stale versions before re-seeding
-		uploadSchema(name, descBytes)
-	}
-
-	fmt.Println()
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("✅  Seed complete! Use the curls below to test the lineage API:")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	printCurls()
+	// 3) Execute E2E assertions
+	runE2ECases()
 }
 
 // buildDescriptorFromProto compiles the proto file using protoc and returns
@@ -164,77 +171,143 @@ func uploadSchema(schemaName string, descBytes []byte) {
 	}
 }
 
-func printCurls() {
-	type cas struct{ label, url string }
+func runE2ECases() {
+	base := fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas/%s", baseURL, namespaceID, schemaID)
 
-	base := fmt.Sprintf("%s/v1beta1/namespaces/%s/schemas", baseURL, namespaceID)
-
-	cases := []cas{
+	cases := []e2eCase{
 		{
-			"Lineage for 'User' — both, level=10\n  Expected: upstream=[Address], downstream=[Order, Payment]",
-			base + "/User/lineage?level=10&direction=both",
+			name:               "container + type_name downstream location-like root",
+			typeName:           "gotocompany.events.Product",
+			query:              "direction=downstream",
+			wantStatus:         http.StatusOK,
+			wantDownstreamSet:  []string{"gotocompany.events.Order.Item", "gotocompany.events.Order", "gotocompany.events.Cart", "gotocompany.events.Payment"},
+			wantDownstreamSize: 4,
 		},
 		{
-			"Lineage for 'User' — upstream only\n  Expected: [Address]",
-			base + "/User/lineage?direction=upstream",
+			name:               "container + type_name downstream nested receipt root",
+			typeName:           "gotocompany.events.Payment.Receipt",
+			query:              "direction=downstream",
+			wantStatus:         http.StatusOK,
+			wantDownstreamSet:  []string{"gotocompany.events.Payment", "gotocompany.events.Ledger"},
+			wantDownstreamSize: 2,
 		},
 		{
-			"Lineage for 'User' — downstream only\n  Expected: [Order, Payment]",
-			base + "/User/lineage?direction=downstream",
+			name:             "container + type_name upstream cart",
+			typeName:         "gotocompany.events.Cart",
+			query:            "direction=upstream",
+			wantStatus:       http.StatusOK,
+			wantUpstreamSet:  []string{"gotocompany.events.User", "gotocompany.events.Order.Item", "gotocompany.events.Address", "gotocompany.events.Product"},
+			wantUpstreamSize: 4,
 		},
 		{
-			"Lineage for 'User' — downstream, level=1 (direct only)\n  Expected: [Order]",
-			base + "/User/lineage?direction=downstream&level=1",
+			name:       "invalid direction",
+			typeName:   "gotocompany.events.Product",
+			query:      "direction=sideways",
+			wantStatus: http.StatusBadRequest,
 		},
-		{
-			"Lineage for 'Order' — both\n  Expected: upstream=[User, Address], downstream=[Payment]",
-			base + "/Order/lineage?direction=both",
-		},
-		{
-			"Lineage for 'Address' — downstream\n  Expected: [User, Order, Payment]",
-			base + "/Address/lineage?direction=downstream",
-		},
-		{
-			// Nested message: Order.Item depends on Product;
-			// GetLineage for 'Product' will find it as the root FQN 'gotocompany.events.Order.Item.Product'? No —
-			// Product is a top-level message. Order.Item's field has TypeName='.gotocompany.events.Product'.
-			// Lineage(Product) downstream → Order.Item (nested msg inside Order)
-			"Inner use-case: Lineage for 'Product' — downstream\n  Expected: downstream=[Item] (Order.Item depends on Product)",
-			base + "/Product/lineage?direction=downstream",
-		},
-		{
-			// Nested message: Payment.Receipt depends on Invoice
-			"Inner use-case: Lineage for 'Invoice' — downstream\n  Expected: downstream=[Receipt] (Payment.Receipt depends on Invoice)",
-			base + "/Invoice/lineage?direction=downstream",
-		},
-		{
-			"Outer ref use-case: Lineage for 'Cart' — upstream\n  Expected: upstream=[Item, Product, User, Address] (Cart uses Order.Item which uses Product; also uses User)",
-			base + "/Cart/lineage?direction=upstream",
-		},
-		{
-			"Outer ref use-case: Lineage for 'Ledger' — upstream\n  Expected: upstream=[Receipt, Invoice] (Ledger uses Payment.Receipt which uses Invoice)",
-			base + "/Ledger/lineage?direction=upstream",
-		},
-		{
-			"Outer ref use-case: Lineage for 'Item' — downstream\n  Expected: downstream=[Order, Payment, Cart] (Item is used by both Order (parent) and Cart (outer ref))",
-			base + "/Item/lineage?direction=downstream",
-		},
-		{
-			"Outer ref use-case: Lineage for 'Receipt' — downstream\n  Expected: downstream=[Payment, Ledger] (Receipt is used by both Payment (parent) and Ledger (outer ref))",
-			base + "/Receipt/lineage?direction=downstream",
-		},
-		{
-			"Invalid direction — expects HTTP 400",
-			base + "/User/lineage?direction=sideways",
-		},
-	}
-
-	for _, c := range cases {
-		fmt.Printf("\n# %s\ncurl -s '%s' | python3 -m json.tool\n", c.label, c.url)
 	}
 
 	fmt.Println()
-	fmt.Println("# ── Other useful endpoints ─────────────────────────────────")
-	fmt.Printf("\n# List namespaces\ncurl -s '%s/v1beta1/namespaces' | python3 -m json.tool\n", baseURL)
-	fmt.Printf("\n# List schemas in namespace '%s'\ncurl -s '%s/v1beta1/namespaces/%s/schemas' | python3 -m json.tool\n", namespaceID, baseURL, namespaceID)
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	fmt.Println("🧪 Running lineage E2E cases")
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+	for _, tc := range cases {
+		url := fmt.Sprintf("%s/types/%s/lineage?%s", base, tc.typeName, tc.query)
+		if err := runCase(tc, url); err != nil {
+			log.Fatalf("✗ %s: %v", tc.name, err)
+		}
+		fmt.Printf("✓ %s\n", tc.name)
+	}
+
+	fmt.Println("\n✅ All lineage E2E cases passed")
+}
+
+func runCase(tc e2eCase, url string) error {
+	resp, body, err := doGet(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != tc.wantStatus {
+		return fmt.Errorf("status mismatch: got=%d want=%d body=%s", resp.StatusCode, tc.wantStatus, string(body))
+	}
+
+	if tc.wantStatus != http.StatusOK {
+		return nil
+	}
+
+	var parsed lineageResponse
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return fmt.Errorf("decode response: %w body=%s", err, string(body))
+	}
+
+	downSet := extractNames(parsed.Downstream)
+	upSet := extractNames(parsed.Upstream)
+
+	if tc.wantDownstreamSize >= 0 && tc.wantDownstreamSize != len(downSet) && len(tc.wantDownstreamSet) > 0 {
+		return fmt.Errorf("downstream size mismatch: got=%d want=%d gotSet=%v", len(downSet), tc.wantDownstreamSize, downSet)
+	}
+	if tc.wantUpstreamSize >= 0 && tc.wantUpstreamSize != len(upSet) && len(tc.wantUpstreamSet) > 0 {
+		return fmt.Errorf("upstream size mismatch: got=%d want=%d gotSet=%v", len(upSet), tc.wantUpstreamSize, upSet)
+	}
+
+	if err := ensureContainsAll(downSet, tc.wantDownstreamSet, "downstream"); err != nil {
+		return err
+	}
+	if err := ensureContainsAll(upSet, tc.wantUpstreamSet, "upstream"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func doGet(url string) (*http.Response, []byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, nil, fmt.Errorf("http get %s: %w", url, err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		_ = resp.Body.Close()
+		return nil, nil, fmt.Errorf("read body: %w", err)
+	}
+	return resp, body, nil
+}
+
+func extractNames(nodes []lineageNode) []string {
+	set := map[string]struct{}{}
+	for _, n := range nodes {
+		if n.TypeName == "" {
+			continue
+		}
+		set[n.TypeName] = struct{}{}
+	}
+	out := make([]string, 0, len(set))
+	for n := range set {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func ensureContainsAll(got []string, want []string, label string) error {
+	if len(want) == 0 {
+		return nil
+	}
+	gotMap := map[string]struct{}{}
+	for _, g := range got {
+		gotMap[g] = struct{}{}
+	}
+	missing := []string{}
+	for _, w := range want {
+		if _, ok := gotMap[w]; !ok {
+			missing = append(missing, w)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("%s missing expected nodes: %s (got=%v)", label, strings.Join(missing, ", "), got)
+	}
+	return nil
 }

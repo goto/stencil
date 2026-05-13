@@ -15,13 +15,14 @@ import (
 
 func TestGetLineageHandler(t *testing.T) {
 	nsName := "namespace1"
-	schemaName := "MySchema"
-	endpoint := fmt.Sprintf("/v1beta1/namespaces/%s/schemas/%s/lineage", nsName, schemaName)
+	schemaID := "esb-log-entities"
+	typeName := "gojek.esb.types.Location"
+	endpoint := fmt.Sprintf("/v1beta1/namespaces/%s/schemas/%s/types/%s/lineage", nsName, schemaID, typeName)
 
 	t.Run("should return 500 when service returns error", func(t *testing.T) {
 		_, schemaSvc, _, mux, _, _ := setup()
 
-		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaName, 10, schema.LineageDirectionBoth).
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 10, schema.LineageDirectionBoth).
 			Return(nil, errors.New("service error"))
 
 		req, _ := http.NewRequest("GET", endpoint, nil)
@@ -40,15 +41,17 @@ func TestGetLineageHandler(t *testing.T) {
 		lineageResp := &schema.LineageResponse{
 			RootSchema: schema.RootSchemaRef{
 				NamespaceID: nsName,
-				SchemaName:  schemaName,
+				SchemaID:    schemaID,
+				TypeName:    typeName,
 			},
 			Direction: schema.LineageDirectionBoth,
 			Downstream: []schema.LineageSchema{
 				{
 					NamespaceID: nsName,
-					SchemaName:  "DependentSchema",
+					SchemaID:    schemaID,
+					TypeName:    "gojek.esb.types.DependentSchema",
 					Level:       1,
-					Path:        []string{schemaName, "DependentSchema"},
+					Path:        []string{"gojek.esb.types.Location", "gojek.esb.types.DependentSchema"},
 				},
 			},
 			Summary: schema.LineageSummary{
@@ -57,7 +60,7 @@ func TestGetLineageHandler(t *testing.T) {
 			},
 		}
 
-		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaName, 10, schema.LineageDirectionBoth).
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 10, schema.LineageDirectionBoth).
 			Return(lineageResp, nil)
 
 		req, _ := http.NewRequest("GET", endpoint, nil)
@@ -67,7 +70,7 @@ func TestGetLineageHandler(t *testing.T) {
 		mux.ServeHTTP(w, req)
 
 		assert.Equal(t, 200, w.Code)
-		assert.Contains(t, w.Body.String(), "DependentSchema")
+		assert.Contains(t, w.Body.String(), "gojek.esb.types.DependentSchema")
 		schemaSvc.AssertExpectations(t)
 	})
 
@@ -75,12 +78,12 @@ func TestGetLineageHandler(t *testing.T) {
 		_, schemaSvc, _, mux, _, _ := setup()
 
 		lineageResp := &schema.LineageResponse{
-			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaName: schemaName},
+			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaID: schemaID, TypeName: typeName},
 			Direction:  schema.LineageDirectionBoth,
 			Summary:    schema.LineageSummary{},
 		}
 
-		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaName, 3, schema.LineageDirectionBoth).
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 3, schema.LineageDirectionBoth).
 			Return(lineageResp, nil)
 
 		req, _ := http.NewRequest("GET", endpoint+"?level=3", nil)
@@ -97,12 +100,12 @@ func TestGetLineageHandler(t *testing.T) {
 		_, schemaSvc, _, mux, _, _ := setup()
 
 		lineageResp := &schema.LineageResponse{
-			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaName: schemaName},
+			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaID: schemaID, TypeName: typeName},
 			Direction:  schema.LineageDirectionBoth,
 			Summary:    schema.LineageSummary{},
 		}
 
-		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaName, 10, schema.LineageDirectionBoth).
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 10, schema.LineageDirectionBoth).
 			Return(lineageResp, nil)
 
 		req, _ := http.NewRequest("GET", endpoint+"?level=invalid", nil)
@@ -119,12 +122,12 @@ func TestGetLineageHandler(t *testing.T) {
 		_, schemaSvc, _, mux, _, _ := setup()
 
 		lineageResp := &schema.LineageResponse{
-			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaName: schemaName},
+			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaID: schemaID, TypeName: typeName},
 			Direction:  schema.LineageDirectionBoth,
 			Summary:    schema.LineageSummary{},
 		}
 
-		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaName, 10, schema.LineageDirectionBoth).
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 10, schema.LineageDirectionBoth).
 			Return(lineageResp, nil)
 
 		req, _ := http.NewRequest("GET", endpoint+"?level=0", nil)
@@ -141,12 +144,12 @@ func TestGetLineageHandler(t *testing.T) {
 		_, schemaSvc, _, mux, _, _ := setup()
 
 		lineageResp := &schema.LineageResponse{
-			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaName: schemaName},
+			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaID: schemaID, TypeName: typeName},
 			Direction:  schema.LineageDirectionDownstream,
 			Summary:    schema.LineageSummary{},
 		}
 
-		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaName, 10, schema.LineageDirectionDownstream).
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 10, schema.LineageDirectionDownstream).
 			Return(lineageResp, nil)
 
 		req, _ := http.NewRequest("GET", endpoint+"?direction=downstream", nil)
@@ -163,12 +166,12 @@ func TestGetLineageHandler(t *testing.T) {
 		_, schemaSvc, _, mux, _, _ := setup()
 
 		lineageResp := &schema.LineageResponse{
-			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaName: schemaName},
+			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaID: schemaID, TypeName: typeName},
 			Direction:  schema.LineageDirectionUpstream,
 			Summary:    schema.LineageSummary{},
 		}
 
-		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaName, 10, schema.LineageDirectionUpstream).
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 10, schema.LineageDirectionUpstream).
 			Return(lineageResp, nil)
 
 		req, _ := http.NewRequest("GET", endpoint+"?direction=upstream", nil)
@@ -192,5 +195,27 @@ func TestGetLineageHandler(t *testing.T) {
 
 		assert.Equal(t, 400, w.Code)
 		schemaSvc.AssertNotCalled(t, "GetLineage")
+	})
+
+	t.Run("should use type_name from path while schema path remains schema container", func(t *testing.T) {
+		_, schemaSvc, _, mux, _, _ := setup()
+
+		lineageResp := &schema.LineageResponse{
+			RootSchema: schema.RootSchemaRef{NamespaceID: nsName, SchemaID: schemaID, TypeName: typeName},
+			Direction:  schema.LineageDirectionDownstream,
+			Summary:    schema.LineageSummary{},
+		}
+
+		schemaSvc.On("GetLineage", mock.Anything, nsName, schemaID, typeName, 10, schema.LineageDirectionDownstream).
+			Return(lineageResp, nil)
+
+		req, _ := http.NewRequest("GET", endpoint+"?direction=downstream", nil)
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, 200, w.Code)
+		schemaSvc.AssertExpectations(t)
 	})
 }

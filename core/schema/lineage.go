@@ -20,13 +20,15 @@ const (
 // RootSchemaRef identifies the schema on which lineage is requested.
 type RootSchemaRef struct {
 	NamespaceID string `json:"namespace_id"`
-	SchemaName  string `json:"schema_name"`
+	SchemaID    string `json:"schema_id"`
+	TypeName    string `json:"type_name"`
 }
 
 // LineageSchema represents a single schema in the lineage graph.
 type LineageSchema struct {
 	NamespaceID string   `json:"namespace_id"`
-	SchemaName  string   `json:"schema_name"`
+	SchemaID    string   `json:"schema_id"`
+	TypeName    string   `json:"type_name"`
 	Level       int      `json:"level"`
 	Path        []string `json:"path"`
 }
@@ -156,18 +158,17 @@ type bfsNode struct {
 	path  []string
 }
 
-func convertLineageNodes(namespaceID string, nodes []bfsNode) []LineageSchema {
+func convertLineageNodes(namespaceID, schemaID string, nodes []bfsNode) []LineageSchema {
 	lineage := make([]LineageSchema, 0, len(nodes))
 	for _, node := range nodes {
-		shortPath := make([]string, len(node.path))
-		for i, p := range node.path {
-			shortPath[i] = lastSegment(p)
-		}
+		fullPath := make([]string, len(node.path))
+		copy(fullPath, node.path)
 		lineage = append(lineage, LineageSchema{
 			NamespaceID: namespaceID,
-			SchemaName:  lastSegment(node.fqn),
+			SchemaID:    schemaID,
+			TypeName:    node.fqn,
 			Level:       node.level,
-			Path:        shortPath,
+			Path:        fullPath,
 		})
 	}
 	return lineage
@@ -175,7 +176,7 @@ func convertLineageNodes(namespaceID string, nodes []bfsNode) []LineageSchema {
 
 // computeLineage is the core logic: given raw schema bytes, a root schema name,
 // level limit, and traversal direction, it returns a LineageResponse.
-func computeLineage(data []byte, namespaceID, schemaName string, level int, direction LineageDirection) (*LineageResponse, error) {
+func computeLineage(data []byte, namespaceID, schemaID, rootType string, level int, direction LineageDirection) (*LineageResponse, error) {
 	fds, err := changedetector.GetDescriptorSet(data)
 	if err != nil {
 		return nil, err
@@ -186,12 +187,13 @@ func computeLineage(data []byte, namespaceID, schemaName string, level int, dire
 	}
 
 	forwardDeps, reverseDeps := buildDependencyMaps(fds)
-	roots := findRootFQNs(fds, schemaName)
+	roots := findRootFQNs(fds, rootType)
 
 	resp := &LineageResponse{
 		RootSchema: RootSchemaRef{
 			NamespaceID: namespaceID,
-			SchemaName:  schemaName,
+			SchemaID:    schemaID,
+			TypeName:    rootType,
 		},
 		Direction: direction,
 	}
@@ -209,7 +211,7 @@ func computeLineage(data []byte, namespaceID, schemaName string, level int, dire
 				downstreamSeen[node.fqn] = true
 				filtered = append(filtered, node)
 			}
-			resp.Downstream = append(resp.Downstream, convertLineageNodes(namespaceID, filtered)...)
+			resp.Downstream = append(resp.Downstream, convertLineageNodes(namespaceID, schemaID, filtered)...)
 		}
 
 		if direction == LineageDirectionBoth || direction == LineageDirectionUpstream {
@@ -222,7 +224,7 @@ func computeLineage(data []byte, namespaceID, schemaName string, level int, dire
 				upstreamSeen[node.fqn] = true
 				filtered = append(filtered, node)
 			}
-			resp.Upstream = append(resp.Upstream, convertLineageNodes(namespaceID, filtered)...)
+			resp.Upstream = append(resp.Upstream, convertLineageNodes(namespaceID, schemaID, filtered)...)
 		}
 	}
 
@@ -231,12 +233,4 @@ func computeLineage(data []byte, namespaceID, schemaName string, level int, dire
 	resp.Summary.TotalCount = resp.Summary.DownstreamCount + resp.Summary.UpstreamCount
 
 	return resp, nil
-}
-
-// lastSegment returns the last dot-separated segment of a fully-qualified name.
-func lastSegment(fqn string) string {
-	if idx := strings.LastIndex(fqn, "."); idx >= 0 {
-		return fqn[idx+1:]
-	}
-	return fqn
 }

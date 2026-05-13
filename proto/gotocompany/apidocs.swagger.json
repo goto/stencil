@@ -422,7 +422,7 @@
         ]
       }
     },
-    "/v1beta1/namespaces/{namespace_id}/schemas/{schema_name}/lineage": {
+    "/v1beta1/namespaces/{namespace_id}/schemas/{schema_id}/types/{type_name}/lineage": {
       "get": {
         "summary": "Get lineage graph for a schema",
         "operationId": "StencilService_GetLineage",
@@ -454,10 +454,18 @@
             "type": "string"
           },
           {
-            "name": "schema_name",
+            "name": "schema_id",
             "in": "path",
             "required": true,
-            "type": "string"
+            "type": "string",
+            "description": "Schema container ID (for example, esb-log-entities)."
+          },
+          {
+            "name": "type_name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Root proto message for lineage traversal. Accepts fully-qualified names (for example, gojek.esb.types.Location)."
           },
           {
             "name": "level",
@@ -786,7 +794,10 @@
         "namespace_id": {
           "type": "string"
         },
-        "schema_name": {
+        "schema_id": {
+          "type": "string"
+        },
+        "type_name": {
           "type": "string"
         },
         "level": {
@@ -885,7 +896,10 @@
         "namespace_id": {
           "type": "string"
         },
-        "schema_name": {
+        "schema_id": {
+          "type": "string"
+        },
+        "type_name": {
           "type": "string"
         }
       }

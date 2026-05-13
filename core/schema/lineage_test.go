@@ -106,7 +106,7 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("GetLatestVersion", mock.Anything, "ns1", "Root").Return(int32(0), errors.New("not found"))
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		_, err := svc.GetLineage(ctx, "ns1", "Root", 5, schema.LineageDirectionDownstream)
+		_, err := svc.GetLineage(ctx, "ns1", "Root", "Root", 5, schema.LineageDirectionDownstream)
 
 		assert.Error(t, err)
 	})
@@ -121,13 +121,14 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Child", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		resp, err := svc.GetLineage(ctx, "ns1", "Child", 5, schema.LineageDirectionDownstream)
+		resp, err := svc.GetLineage(ctx, "ns1", "Child", "Child", 5, schema.LineageDirectionDownstream)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.Equal(t, schema.LineageDirectionDownstream, resp.Direction)
 		assert.Equal(t, "ns1", resp.RootSchema.NamespaceID)
-		assert.Equal(t, "Child", resp.RootSchema.SchemaName)
+		assert.Equal(t, "Child", resp.RootSchema.SchemaID)
+		assert.Equal(t, "Child", resp.RootSchema.TypeName)
 		assert.Empty(t, resp.Downstream)
 		assert.Empty(t, resp.Upstream)
 		assert.Equal(t, 0, resp.Summary.TotalCount)
@@ -143,16 +144,16 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Root", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		resp, err := svc.GetLineage(ctx, "ns1", "Root", 5, schema.LineageDirectionDownstream)
+		resp, err := svc.GetLineage(ctx, "ns1", "Root", "Root", 5, schema.LineageDirectionDownstream)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
-		assert.Equal(t, "Root", resp.RootSchema.SchemaName)
+		assert.Equal(t, "Root", resp.RootSchema.TypeName)
 		assert.Equal(t, 1, resp.Summary.DownstreamCount)
 		assert.Equal(t, 1, resp.Summary.TotalCount)
-		assert.Equal(t, "Child", resp.Downstream[0].SchemaName)
+		assert.Equal(t, "mypackage.Child", resp.Downstream[0].TypeName)
 		assert.Equal(t, 1, resp.Downstream[0].Level)
-		assert.Equal(t, []string{"Root", "Child"}, resp.Downstream[0].Path)
+		assert.Equal(t, []string{"mypackage.Root", "mypackage.Child"}, resp.Downstream[0].Path)
 	})
 
 	t.Run("should return upstream lineage", func(t *testing.T) {
@@ -165,14 +166,14 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "GrandChild", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		resp, err := svc.GetLineage(ctx, "ns1", "GrandChild", 10, schema.LineageDirectionUpstream)
+		resp, err := svc.GetLineage(ctx, "ns1", "GrandChild", "GrandChild", 10, schema.LineageDirectionUpstream)
 
 		assert.NoError(t, err)
 		assert.Equal(t, 2, resp.Summary.UpstreamCount)
 		assert.Equal(t, 2, resp.Summary.TotalCount)
-		assert.Equal(t, "Child", resp.Upstream[0].SchemaName)
-		assert.Equal(t, "Root", resp.Upstream[1].SchemaName)
-		assert.Equal(t, []string{"GrandChild", "Child"}, resp.Upstream[0].Path)
+		assert.Equal(t, "mypackage.Child", resp.Upstream[0].TypeName)
+		assert.Equal(t, "mypackage.Root", resp.Upstream[1].TypeName)
+		assert.Equal(t, []string{"mypackage.GrandChild", "mypackage.Child"}, resp.Upstream[0].Path)
 	})
 
 	t.Run("should default to both directions when direction is empty", func(t *testing.T) {
@@ -185,15 +186,15 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Child", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		resp, err := svc.GetLineage(ctx, "ns1", "Child", 10, "")
+		resp, err := svc.GetLineage(ctx, "ns1", "Child", "Child", 10, "")
 
 		assert.NoError(t, err)
 		assert.Equal(t, schema.LineageDirectionBoth, resp.Direction)
 		assert.Equal(t, 1, resp.Summary.DownstreamCount)
 		assert.Equal(t, 1, resp.Summary.UpstreamCount)
 		assert.Equal(t, 2, resp.Summary.TotalCount)
-		assert.Equal(t, "GrandChild", resp.Downstream[0].SchemaName)
-		assert.Equal(t, "Root", resp.Upstream[0].SchemaName)
+		assert.Equal(t, "mypackage.GrandChild", resp.Downstream[0].TypeName)
+		assert.Equal(t, "mypackage.Root", resp.Upstream[0].TypeName)
 	})
 
 	t.Run("should respect level=1 and not traverse deeper", func(t *testing.T) {
@@ -206,11 +207,11 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Root", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		resp, err := svc.GetLineage(ctx, "ns1", "Root", 1, schema.LineageDirectionDownstream)
+		resp, err := svc.GetLineage(ctx, "ns1", "Root", "Root", 1, schema.LineageDirectionDownstream)
 
 		assert.NoError(t, err)
 		assert.Equal(t, 1, resp.Summary.DownstreamCount)
-		assert.Equal(t, "Child", resp.Downstream[0].SchemaName)
+		assert.Equal(t, "mypackage.Child", resp.Downstream[0].TypeName)
 	})
 
 	t.Run("should traverse multi-level downstream lineage", func(t *testing.T) {
@@ -223,17 +224,17 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Root", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		resp, err := svc.GetLineage(ctx, "ns1", "Root", 10, schema.LineageDirectionDownstream)
+		resp, err := svc.GetLineage(ctx, "ns1", "Root", "Root", 10, schema.LineageDirectionDownstream)
 
 		assert.NoError(t, err)
 		assert.Equal(t, 2, resp.Summary.DownstreamCount)
 
 		names := map[string]bool{}
 		for _, is := range resp.Downstream {
-			names[is.SchemaName] = true
+			names[is.TypeName] = true
 		}
-		assert.True(t, names["Child"])
-		assert.True(t, names["GrandChild"])
+		assert.True(t, names["mypackage.Child"])
+		assert.True(t, names["mypackage.GrandChild"])
 	})
 
 	t.Run("should use default level=10 when 0 is passed", func(t *testing.T) {
@@ -246,7 +247,7 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Root", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		resp, err := svc.GetLineage(ctx, "ns1", "Root", 0, schema.LineageDirectionDownstream) // 0 → default 10
+		resp, err := svc.GetLineage(ctx, "ns1", "Root", "Root", 0, schema.LineageDirectionDownstream) // 0 → default 10
 
 		assert.NoError(t, err)
 		assert.Equal(t, 2, resp.Summary.DownstreamCount)
@@ -260,7 +261,7 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Root", int32(1)).Return([]byte("not valid proto"), nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		_, err := svc.GetLineage(ctx, "ns1", "Root", 5, schema.LineageDirectionDownstream)
+		_, err := svc.GetLineage(ctx, "ns1", "Root", "Root", 5, schema.LineageDirectionDownstream)
 
 		assert.Error(t, err)
 	})
@@ -274,7 +275,7 @@ func TestGetLineage(t *testing.T) {
 		schemaRepo.On("Get", mock.Anything, "ns1", "Root", int32(1)).Return(data, nil)
 		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
 
-		_, err := svc.GetLineage(ctx, "ns1", "Root", 5, schema.LineageDirection("sideways"))
+		_, err := svc.GetLineage(ctx, "ns1", "Root", "Root", 5, schema.LineageDirection("sideways"))
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid direction")
@@ -288,12 +289,12 @@ func TestGetLineage(t *testing.T) {
 func TestLineageStructs(t *testing.T) {
 	t.Run("LineageResponse summary counts", func(t *testing.T) {
 		resp := schema.LineageResponse{
-			RootSchema: schema.RootSchemaRef{NamespaceID: "ns", SchemaName: "Foo"},
+			RootSchema: schema.RootSchemaRef{NamespaceID: "ns", SchemaID: "sc", TypeName: "Foo"},
 			Downstream: []schema.LineageSchema{
-				{SchemaName: "Bar"},
+				{SchemaID: "sc", TypeName: "Bar"},
 			},
 			Upstream: []schema.LineageSchema{
-				{SchemaName: "Baz"},
+				{SchemaID: "sc", TypeName: "Baz"},
 			},
 			Summary: schema.LineageSummary{DownstreamCount: 1, UpstreamCount: 1, TotalCount: 2},
 		}

@@ -167,9 +167,9 @@ func (_m *SchemaService) Get(ctx context.Context, namespace string, schemaName s
 	return r0, r1, r2
 }
 
-// GetLineage provides a mock function with given fields: ctx, namespaceID, schemaName, level, direction
-func (_m *SchemaService) GetLineage(ctx context.Context, namespaceID string, schemaName string, level int, direction schema.LineageDirection) (*schema.LineageResponse, error) {
-	ret := _m.Called(ctx, namespaceID, schemaName, level, direction)
+// GetLineage provides a mock function with given fields: ctx, namespaceID, schemaID, rootType, level, direction
+func (_m *SchemaService) GetLineage(ctx context.Context, namespaceID string, schemaID string, rootType string, level int, direction schema.LineageDirection) (*schema.LineageResponse, error) {
+	ret := _m.Called(ctx, namespaceID, schemaID, rootType, level, direction)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetLineage")
@@ -177,19 +177,19 @@ func (_m *SchemaService) GetLineage(ctx context.Context, namespaceID string, sch
 
 	var r0 *schema.LineageResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, int, schema.LineageDirection) (*schema.LineageResponse, error)); ok {
-		return rf(ctx, namespaceID, schemaName, level, direction)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int, schema.LineageDirection) (*schema.LineageResponse, error)); ok {
+		return rf(ctx, namespaceID, schemaID, rootType, level, direction)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, int, schema.LineageDirection) *schema.LineageResponse); ok {
-		r0 = rf(ctx, namespaceID, schemaName, level, direction)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int, schema.LineageDirection) *schema.LineageResponse); ok {
+		r0 = rf(ctx, namespaceID, schemaID, rootType, level, direction)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*schema.LineageResponse)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, int, schema.LineageDirection) error); ok {
-		r1 = rf(ctx, namespaceID, schemaName, level, direction)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, int, schema.LineageDirection) error); ok {
+		r1 = rf(ctx, namespaceID, schemaID, rootType, level, direction)
 	} else {
 		r1 = ret.Error(1)
 	}

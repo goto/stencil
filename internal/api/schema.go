@@ -178,7 +178,11 @@ func (a *API) DeleteVersion(ctx context.Context, in *stencilv1beta1.DeleteVersio
 
 func (a *API) GetLineage(w http.ResponseWriter, req *http.Request, pathParams map[string]string) error {
 	namespaceID := pathParams["namespace_id"]
-	schemaName := pathParams["schema_name"]
+	schemaID := pathParams["schema_id"]
+	rootType := pathParams["type_name"]
+	if rootType == "" {
+		return &runtime.HTTPStatusError{HTTPStatus: http.StatusBadRequest, Err: errors.New("missing required path parameter: type_name")}
+	}
 
 	level := 10
 	if d := req.URL.Query().Get("level"); d != "" {
@@ -195,7 +199,7 @@ func (a *API) GetLineage(w http.ResponseWriter, req *http.Request, pathParams ma
 		return &runtime.HTTPStatusError{HTTPStatus: http.StatusBadRequest, Err: err}
 	}
 
-	resp, err := a.schema.GetLineage(req.Context(), namespaceID, schemaName, level, direction)
+	resp, err := a.schema.GetLineage(req.Context(), namespaceID, schemaID, rootType, level, direction)
 	if err != nil {
 		return err
 	}
