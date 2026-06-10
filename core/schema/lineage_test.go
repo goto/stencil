@@ -93,6 +93,53 @@ func buildMultiLevelDescriptorSetBytes(pkg string) []byte {
 	return data
 }
 
+// buildEnumDescriptorSetBytes builds a structure where a message depends on a nested enum definition.
+// Message: DataMessage -> depends on DataTypes.Enum
+// Message: DataTypes   -> contains enum Enum { UNKNOWN = 0; }
+func buildEnumDescriptorSetBytes(pkg string) []byte {
+	// 1. Nested Enum definition: UNKNOWN = 0
+	enumValue := &descriptor.EnumValueDescriptorProto{
+		Name:   proto.String("UNKNOWN"),
+		Number: proto.Int32(0),
+	}
+	enumProto := &descriptor.EnumDescriptorProto{
+		Name:  proto.String("Enum"),
+		Value: []*descriptor.EnumValueDescriptorProto{enumValue},
+	}
+
+	// 2. Parent message structure containing the nested enum
+	typesMsg := &descriptor.DescriptorProto{
+		Name:     proto.String("DataTypes"),
+		EnumType: []*descriptor.EnumDescriptorProto{enumProto},
+	}
+
+	// 3. Primary consuming message holding a field of that enum type
+	msgField := &descriptor.FieldDescriptorProto{
+		Name:     proto.String("action_type"),
+		Number:   proto.Int32(4),
+		Type:     descriptor.FieldDescriptorProto_TYPE_ENUM.Enum(),
+		TypeName: proto.String("." + pkg + ".DataTypes.Enum"),
+	}
+	dataMsg := &descriptor.DescriptorProto{
+		Name:  proto.String("DataMessage"),
+		Field: []*descriptor.FieldDescriptorProto{msgField},
+	}
+
+	// 4. File layout setup
+	file := &descriptor.FileDescriptorProto{
+		Name:        proto.String("generic_data.proto"),
+		Package:     proto.String(pkg),
+		MessageType: []*descriptor.DescriptorProto{dataMsg, typesMsg},
+	}
+
+	fds := &descriptor.FileDescriptorSet{
+		File: []*descriptor.FileDescriptorProto{file},
+	}
+
+	data, _ := proto.Marshal(fds)
+	return data
+}
+
 // ---------------------------------------------------------------------------
 // Service.GetLineage tests
 // ---------------------------------------------------------------------------
@@ -279,6 +326,32 @@ func TestGetLineage(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid direction")
+	})
+
+	t.Run("should return downstream lineage when tracing starting from an enum", func(t *testing.T) {
+		svc, _, _, schemaRepo, newrelic, _, _, _ := getSvc()
+		pkg := "mypackage"
+		data := buildEnumDescriptorSetBytes(pkg)
+
+		// Mocking database retrieval with neutral variables matching standard test layout
+		schemaRepo.On("GetLatestVersion", mock.Anything, "ns1", "generic-schema").Return(int32(1), nil)
+		schemaRepo.On("GetMetadata", mock.Anything, "ns1", "generic-schema").Return(&schema.Metadata{Format: "protobuf"}, nil)
+		schemaRepo.On("Get", mock.Anything, "ns1", "generic-schema", int32(1)).Return(data, nil)
+		newrelic.On("StartGenericSegment", mock.Anything, mock.Anything).Return(func() {})
+
+		// Call lineage starting directly from the Enum type name suffix
+		resp, err := svc.GetLineage(ctx, "ns1", "generic-schema", "DataTypes.Enum", 5, schema.LineageDirectionDownstream)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, schema.LineageDirectionDownstream, resp.Direction)
+		assert.Equal(t, "DataTypes.Enum", resp.RootSchema.TypeName)
+
+		// Verify that downstream lineage successfully identified the consuming Message
+		assert.Equal(t, 1, resp.Summary.DownstreamCount)
+		assert.Equal(t, "mypackage.DataMessage", resp.Downstream[0].TypeName)
+		assert.Equal(t, 1, resp.Downstream[0].Level)
+		assert.Equal(t, []string{"mypackage.DataTypes.Enum", "mypackage.DataMessage"}, resp.Downstream[0].Path)
 	})
 }
 

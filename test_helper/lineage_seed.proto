@@ -10,16 +10,20 @@ package gotocompany.events;
 //                              │               └──────────────────── Cart (outer ref to Order.Item)
 //                              └──────────────────────────────────── Ledger (outer ref to Payment.Receipt)
 //
-// Upstream  (what a message depends on)
-// Downstream (what depends on that message)
+//  Enum use-cases:
+//    Status (top-level enum) ─────────────────────────────────────── Order (field: status)
+//    DataTypes (message)
+//      └── DataTypes.Enum (nested enum)
+//                         └────────────────────────────────────────  DataMessage (field: action_type)
 //
-// Examples:
-//   Lineage(User)        upstream=[Address]              downstream=[Order, Payment, Cart, Ledger, ...]
-//   Lineage(Order)       upstream=[User, Address]        downstream=[Payment, Cart, Ledger, ...]
-//   Lineage(Product)     upstream=[]                     downstream=[Item, Order, Cart, ...]
-//   Lineage(Invoice)     upstream=[]                     downstream=[Receipt, Payment, Ledger]
-//   Lineage(Order.Item)  upstream=[Product]              downstream=[Order (parent), Cart (outer ref)]
-//   Lineage(Payment.Receipt) upstream=[Invoice]          downstream=[Payment (parent), Ledger (outer ref)]
+//  DataMessage depends on: User, DataTypes.Enum (→ DataTypes), Status
+//
+// Upstream / Downstream examples (updated):
+//   Lineage(User)            upstream=[Address]              downstream=[Order, Payment, Cart, Ledger, DataMessage, ...]
+//   Lineage(DataTypes)       upstream=[]                     downstream=[DataTypes.Enum, DataMessage]
+//   Lineage(DataTypes.Enum)  upstream=[DataTypes (parent)]   downstream=[DataMessage]
+//   Lineage(Status)          upstream=[]                     downstream=[Order, DataMessage]
+//   Lineage(DataMessage)     upstream=[User, Address, DataTypes.Enum, DataTypes, Status]
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Leaf entity — no dependencies
@@ -49,11 +53,21 @@ message Invoice {
   double amount = 2;
 }
 
-// Depends on: User
+// Top-level enum use-case: a standalone enum referenced by multiple messages.
+// Demonstrates that a top-level enum surfaces as a dependency in lineage,
+// just like a leaf message would.
+enum Status {
+  STATUS_UNKNOWN  = 0;
+  STATUS_ACTIVE   = 1;
+  STATUS_INACTIVE = 2;
+}
+
+// Depends on: User, Status
 // Contains nested message: Order.Item (depends on Product)
 message Order {
-  string id   = 1;
-  User   user = 2;
+  string id     = 1;
+  User   user   = 2;
+  Status status = 4; // top-level enum field
 
   // Inner use-case: nested message that introduces its own dependency (Product)
   message Item {
@@ -72,8 +86,8 @@ message Payment {
 
   // Inner use-case: nested message that introduces its own dependency (Invoice)
   message Receipt {
-    Invoice invoice    = 1;
-    string  issued_at  = 2;
+    Invoice invoice   = 1;
+    string  issued_at = 2;
   }
 
   Receipt receipt = 3;
@@ -82,9 +96,9 @@ message Payment {
 // Outer use-case: references Order.Item directly (not through Order)
 // Shows that a nested type can be used as a first-class dependency outside its parent.
 message Cart {
-  string     id       = 1;
-  User       user     = 2;
-  Order.Item item     = 3; // direct reference to the nested type
+  string     id   = 1;
+  User       user = 2;
+  Order.Item item = 3; // direct reference to the nested type
 }
 
 // Outer use-case: references Payment.Receipt directly (not through Payment)
@@ -94,3 +108,23 @@ message Ledger {
   Payment.Receipt receipt = 2; // direct reference to the nested type
 }
 
+// Nested enum use-case: a message whose sole purpose is to namespace an enum.
+// DataTypes.Enum is referenced externally by DataMessage, demonstrating that
+// a nested enum type creates a lineage edge just like a nested message type does.
+message DataTypes {
+  enum Enum {
+    UNKNOWN = 0;
+    SET     = 1;
+    UNSET   = 2;
+  }
+}
+
+// Depends on: User, DataTypes.Enum (nested enum), Status (top-level enum)
+// Demonstrates that enum fields (both top-level and nested) are tracked in lineage.
+message DataMessage {
+  string          id              = 1;
+  User            user            = 2;
+  DataTypes.Enum  action_type     = 3; // nested enum reference
+  Status          status          = 4; // top-level enum reference
+  repeated string item_sequence   = 5;
+}

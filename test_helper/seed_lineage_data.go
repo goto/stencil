@@ -205,6 +205,54 @@ func runE2ECases() {
 			query:      "direction=sideways",
 			wantStatus: http.StatusBadRequest,
 		},
+
+		// ── enum use-cases ────────────────────────────────────────────────────────
+
+		// DataMessage depends on User (→ Address), DataTypes.Enum (→ DataTypes), and Status.
+		{
+			name:       "upstream of DataMessage includes user chain + enum deps",
+			typeName:   "gotocompany.events.DataMessage",
+			query:      "direction=upstream",
+			wantStatus: http.StatusOK,
+			wantUpstreamSet: []string{
+				"gotocompany.events.User",
+				"gotocompany.events.Address",
+				"gotocompany.events.DataTypes",
+				"gotocompany.events.DataTypes.Enum",
+				"gotocompany.events.Status",
+			},
+			wantUpstreamSize: 5,
+		},
+
+		// DataTypes.Enum (nested enum) is referenced by DataMessage.
+		{
+			name:               "downstream of nested enum DataTypes.Enum",
+			typeName:           "gotocompany.events.DataTypes.Enum",
+			query:              "direction=downstream",
+			wantStatus:         http.StatusOK,
+			wantDownstreamSet:  []string{"gotocompany.events.DataMessage"},
+			wantDownstreamSize: 1,
+		},
+
+		// DataTypes (the wrapper message) transitively reaches DataMessage through DataTypes.Enum.
+		{
+			name:               "downstream of DataTypes wrapper message",
+			typeName:           "gotocompany.events.DataTypes",
+			query:              "direction=downstream",
+			wantStatus:         http.StatusOK,
+			wantDownstreamSet:  []string{"gotocompany.events.DataTypes.Enum", "gotocompany.events.DataMessage"},
+			wantDownstreamSize: 2,
+		},
+
+		// Status (top-level enum) is referenced by both Order and DataMessage.
+		{
+			name:               "downstream of top-level enum Status",
+			typeName:           "gotocompany.events.Status",
+			query:              "direction=downstream",
+			wantStatus:         http.StatusOK,
+			wantDownstreamSet:  []string{"gotocompany.events.Order", "gotocompany.events.DataMessage"},
+			wantDownstreamSize: 2,
+		},
 	}
 
 	fmt.Println()
