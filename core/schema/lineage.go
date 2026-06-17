@@ -99,6 +99,10 @@ func findRootFQNs(fds *descriptor.FileDescriptorSet, schemaName string) []string
 		for _, msg := range fd.GetMessageType() {
 			collectFQNs(pkg, msg, allFQNs)
 		}
+
+		for _, enum := range fd.GetEnumType() {
+			allFQNs[pkg+"."+enum.GetName()] = struct{}{}
+		}
 	}
 
 	var roots []string
@@ -113,6 +117,12 @@ func findRootFQNs(fds *descriptor.FileDescriptorSet, schemaName string) []string
 func collectFQNs(prefix string, msg *descriptor.DescriptorProto, out map[string]struct{}) {
 	fqn := prefix + "." + msg.GetName()
 	out[fqn] = struct{}{}
+
+	// Collect nested enums defined inside this message
+	for _, enum := range msg.GetEnumType() {
+		out[fqn+"."+enum.GetName()] = struct{}{}
+	}
+
 	for _, nested := range msg.GetNestedType() {
 		collectFQNs(fqn, nested, out)
 	}
