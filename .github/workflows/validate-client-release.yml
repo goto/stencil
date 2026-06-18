@@ -1,0 +1,176 @@
+name: Validate Client Release
+on:
+#  pull_request:
+#    branches:
+#      - main
+#    paths:
+#      - ".github/workflows/release-*.yml"
+#      - ".github/workflows/validate-client-release.yml"
+#      - "clients/java/**"
+#      - "clients/clojure/**"
+#      - "clients/js/**"
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: "Optional base version to validate (for example: 0.8.0). If omitted, use 0.0.0."
+        required: false
+        type: string
+
+jobs:
+  validate-java-client-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve dry-run version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.releaseVersion }}
+#          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          base_version="${INPUT_VERSION:-0.0.0}"
+          version="${base_version}-rc.${RUN_NUMBER}"
+#          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+#            version="${base_version}-pr.${PR_NUMBER}.${RUN_NUMBER}"
+#          else
+#            version="${base_version}-rc.${RUN_NUMBER}"
+#          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+      - name: Build and publish Java client to local Maven cache
+        run: |
+          ./gradlew clean publishToMavenLocal -x test -PreleaseVersion=${{ steps.version.outputs.version }} -PreleaseSigning=false --console=plain
+        working-directory: clients/java
+      - name: Upload Java release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-client-${{ steps.version.outputs.version }}
+          path: |
+            clients/java/build/libs/*.jar
+            ~/.m2/repository/com/gotocompany/stencil/${{ steps.version.outputs.version }}/**
+
+  validate-clojure-client-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve dry-run version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.releaseVersion }}
+#          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          base_version="${INPUT_VERSION:-0.0.0}"
+          version="${base_version}-rc.${RUN_NUMBER}"
+#          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+#            version="${base_version}-pr.${PR_NUMBER}.${RUN_NUMBER}"
+#          else
+#            version="${base_version}-rc.${RUN_NUMBER}"
+#          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@4.0
+        with:
+          lein: 2.9.8
+      - name: Set project version
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        working-directory: clients/clojure
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("project.clj")
+          text = path.read_text()
+          version = os.environ["RELEASE_VERSION"]
+          updated, count = re.subn(
+              r'(\(defproject\s+com\.gotocompany/stencil-clj\s+")([^"]+)(")',
+              rf'\g<1>{version}\g<3>',
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Unable to update Clojure client version in project.clj")
+          path.write_text(updated)
+          PY
+      - name: Build release artifacts locally
+        env:
+          LEIN_SNAPSHOTS_IN_RELEASE: "1"
+        run: |
+          lein pom
+          lein jar
+          lein install
+        working-directory: clients/clojure
+      - name: Upload Clojure release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: clojure-client-${{ steps.version.outputs.version }}
+          path: |
+            clients/clojure/target/*.jar
+            clients/clojure/pom.xml
+            ~/.m2/repository/com/gotocompany/stencil-clj/${{ steps.version.outputs.version }}/**
+
+  validate-js-client-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve dry-run version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.releaseVersion }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          base_version="${INPUT_VERSION:-0.0.0}"
+          version="${base_version}-rc.${RUN_NUMBER}"
+#          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+#            version="${base_version}-pr.${PR_NUMBER}.${RUN_NUMBER}"
+#          else
+#            version="${base_version}-rc.${RUN_NUMBER}"
+#          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+          scope: "@goto-company"
+      - name: Install dependencies
+        run: npm ci
+        working-directory: clients/js
+      - name: Set package version
+        run: npm version --no-git-tag-version "${{ steps.version.outputs.version }}"
+        working-directory: clients/js
+      - name: Pack JS client
+        env:
+          ARTIFACT_DIR: ${{ runner.temp }}/js-release-artifacts
+        run: |
+          npm publish --dry-run --access public
+          mkdir -p "$ARTIFACT_DIR"
+          npm pack --pack-destination "$ARTIFACT_DIR" --json > "$ARTIFACT_DIR/pack-output.json"
+        working-directory: clients/js
+      - name: Upload JS release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-client-${{ steps.version.outputs.version }}
+          path: |
+            ${{ runner.temp }}/js-release-artifacts/*.tgz
+            ${{ runner.temp }}/js-release-artifacts/pack-output.json
+
+
+
+
+

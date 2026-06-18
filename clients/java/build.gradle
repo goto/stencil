@@ -6,11 +6,16 @@ plugins {
     id 'maven-publish'
     id 'com.google.protobuf' version '0.8.15'
     id 'io.freefair.lombok' version '5.3.3.3'
-    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
 }
 
 group 'com.gotocompany'
-version '0.7.0'
+version findProperty('releaseVersion') ?: '0.7.0'
+def releaseSigningEnabled = (findProperty('releaseSigning') ?: 'true').toBoolean()
+def useSonatypeStaging = (findProperty('useSonatypeStaging') ?: 'false').toBoolean()
+
+if (useSonatypeStaging) {
+    apply plugin: "io.github.gradle-nexus.publish-plugin"
+}
 
 repositories {
     mavenLocal()
@@ -74,6 +79,7 @@ publishing {
 
     publications {
         maven(MavenPublication) {
+            from components.java
             pom {
                 name = 'Stencil'
                 description = 'Library to pull latest proto descriptors from a remote server'
@@ -96,23 +102,28 @@ publishing {
                         email = '41898282+github-actions[bot]@users.noreply.github.com'
                     }
                 }
-                from components.java
             }
         }
     }
 }
 
 signing {
-   sign publishing.publications.maven
+    required { releaseSigningEnabled }
+    if (releaseSigningEnabled) {
+        sign publishing.publications.maven
+    }
 }
 
-nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-            username = System.getenv("MAVEN_USERNAME")
-            password = System.getenv("MAVEN_PASSWORD")
+if (useSonatypeStaging) {
+    nexusPublishing {
+        packageGroup = 'com.gotocompany'
+        repositories {
+            sonatype {
+                nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+                snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_PASSWORD")
+            }
         }
     }
 }
