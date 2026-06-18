@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package test;
+
+// Inner is defined INSIDE Outer
+message Outer {
+  string id = 1;
+
+  message Inner {
+    string value = 2;
+  }
+
+  Inner inner = 3;
+}
+
+// AnotherMessage uses Outer.Inner directly — cross-referencing a nested message
+message AnotherMessage {
+  Outer.Inner inner_ref = 1;
+}
+

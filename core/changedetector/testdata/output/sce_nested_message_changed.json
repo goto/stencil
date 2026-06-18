@@ -1,0 +1,35 @@
+{
+  "namespace_name": "testNamespace",
+  "schema_name": "testSchemaName",
+  "updated_schemas": [
+    "test.Outer",
+    "test.Outer.Inner"
+  ],
+  "updated_fields": {
+    "test.Outer": {},
+    "test.Outer.Inner": {
+      "field_names": [
+        "extra_field"
+      ]
+    }
+  },
+  "impacted_schemas": {
+    "test.Outer": {
+      "schema_names": [
+        "test.Outer"
+      ]
+    },
+    "test.Outer.Inner": {
+      "schema_names": [
+        "test.Outer.Inner",
+        "test.Outer"
+      ]
+    }
+  },
+  "version": 1,
+  "metadata": {
+    "source_url": "https://github.com/some-repo",
+    "commit_sha": "some-commit-sha"
+  }
+}
+

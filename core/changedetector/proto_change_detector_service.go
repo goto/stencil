@@ -80,24 +80,56 @@ func appendImpactedDependents(sce *stencilv1beta1.SchemaChangedEvent, key string
 }
 
 func setDirectlyImpactedSchemasAndFields(currentFds, prevFds *descriptor.FileDescriptorSet, sce *stencilv1beta1.SchemaChangedEvent) {
-	packageMessageMap := getPackageMessageMap(prevFds)
+	prevMessageMap := collectAllMessages(prevFds)
 	packageEnumMap := getPackageEnumMap(prevFds)
 	for _, fileDesc := range currentFds.GetFile() {
+		pkg := fileDesc.GetPackage()
 		for _, newMessageDesc := range fileDesc.GetMessageType() {
-			messageName := fileDesc.GetPackage() + "." + newMessageDesc.GetName()
-			oldMessageDesc := getMessageDescriptor(packageMessageMap, fileDesc.GetPackage(), newMessageDesc.GetName())
-			if oldMessageDesc == nil {
-				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
-				appendImpactedFields(sce, messageName, GetImpactedMessageFields(oldMessageDesc, newMessageDesc))
-				continue
-			}
-			if !proto.Equal(oldMessageDesc, newMessageDesc) {
-				sce.UpdatedSchemas = append(sce.UpdatedSchemas, messageName)
-				appendImpactedFields(sce, messageName, GetImpactedMessageFields(oldMessageDesc, newMessageDesc))
-			}
-			compareEnumDescInMessageDesc(oldMessageDesc, newMessageDesc, messageName, sce)
+			compareMessageTree(pkg, newMessageDesc, prevMessageMap, sce)
 		}
 		compareEnumDescriptors(fileDesc, packageEnumMap, sce)
+	}
+}
+
+// collectAllMessages returns a flat map of fully-qualified name -> descriptor
+// for ALL messages (top-level and nested) across all files in the descriptor set.
+func collectAllMessages(fds *descriptor.FileDescriptorSet) map[string]*descriptor.DescriptorProto {
+	result := make(map[string]*descriptor.DescriptorProto)
+	for _, fileDesc := range fds.GetFile() {
+		pkg := fileDesc.GetPackage()
+		for _, msgDesc := range fileDesc.GetMessageType() {
+			walkMessageTree(pkg, msgDesc, result)
+		}
+	}
+	return result
+}
+
+// walkMessageTree recursively registers a message and all its nested messages
+// into the result map under their fully-qualified names (e.g. "test.Outer.Inner").
+func walkMessageTree(prefix string, msg *descriptor.DescriptorProto, result map[string]*descriptor.DescriptorProto) {
+	fullName := prefix + "." + msg.GetName()
+	result[fullName] = msg
+	for _, nested := range msg.GetNestedType() {
+		walkMessageTree(fullName, nested, result)
+	}
+}
+
+// compareMessageTree recursively compares a message and all its nested messages,
+// recording any changes into the SchemaChangedEvent.
+func compareMessageTree(prefix string, newMsg *descriptor.DescriptorProto, prevMessageMap map[string]*descriptor.DescriptorProto, sce *stencilv1beta1.SchemaChangedEvent) {
+	fullName := prefix + "." + newMsg.GetName()
+	oldMsg := prevMessageMap[fullName]
+	if oldMsg == nil {
+		sce.UpdatedSchemas = append(sce.UpdatedSchemas, fullName)
+		appendImpactedFields(sce, fullName, GetImpactedMessageFields(oldMsg, newMsg))
+	} else if !proto.Equal(oldMsg, newMsg) {
+		sce.UpdatedSchemas = append(sce.UpdatedSchemas, fullName)
+		appendImpactedFields(sce, fullName, GetImpactedMessageFields(oldMsg, newMsg))
+		compareEnumDescInMessageDesc(oldMsg, newMsg, fullName, sce)
+	}
+	// Always recurse into nested messages so each level is independently evaluated.
+	for _, nested := range newMsg.GetNestedType() {
+		compareMessageTree(fullName, nested, prevMessageMap, sce)
 	}
 }
 
@@ -148,24 +180,6 @@ func compareEnumDescriptors(fds *descriptorpb.FileDescriptorProto, packageEnumMa
 }
 
 /*
-packageMessageMap is map having all the messages inside a package
-[com.goto.bookinglog][BookingLogMessage]=BookingLogMessageDescriptor
-*/
-func getPackageMessageMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[string]map[string]*descriptor.DescriptorProto {
-	packageMessageMap := make(map[string]map[string]*descriptor.DescriptorProto)
-	for _, fileDescriptor := range fileDescriptorSet.GetFile() {
-		pkgName := fileDescriptor.GetPackage()
-		if _, ok := packageMessageMap[pkgName]; !ok {
-			packageMessageMap[pkgName] = make(map[string]*descriptor.DescriptorProto)
-		}
-		for _, messageDescriptor := range fileDescriptor.GetMessageType() {
-			packageMessageMap[pkgName][messageDescriptor.GetName()] = messageDescriptor
-		}
-	}
-	return packageMessageMap
-}
-
-/*
 packageEnumMap is map having all the enums inside a package
 [com.goto.bookinglog][ServiceTypeEnum]=ServiceTypeEnumDescriptor
 */
@@ -181,15 +195,6 @@ func getPackageEnumMap(fileDescriptorSet *descriptor.FileDescriptorSet) map[stri
 		}
 	}
 	return packageEnumMap
-}
-
-func getMessageDescriptor(packageMessageMap map[string]map[string]*descriptor.DescriptorProto, packageName, messageName string) *descriptor.DescriptorProto {
-	if packageMap, found := packageMessageMap[packageName]; found {
-		if descriptor, found := packageMap[messageName]; found {
-			return descriptor
-		}
-	}
-	return nil
 }
 
 func getEnumDescriptor(packageEnumMap map[string]map[string]*descriptor.EnumDescriptorProto, packageName, enumName string) *descriptor.EnumDescriptorProto {
@@ -213,21 +218,31 @@ func findEnumDescriptorFromMessageDescriptor(messageDescriptor *descriptor.Descr
 func getReverseDependencies(fileDescriptorSet *descriptor.FileDescriptorSet) map[string][]string {
 	reverseDependencies := make(map[string][]string)
 	for _, fileDescriptor := range fileDescriptorSet.GetFile() {
+		pkg := fileDescriptor.GetPackage()
 		for _, messageDescriptor := range fileDescriptor.GetMessageType() {
-			messageName := fileDescriptor.GetPackage() + "." + messageDescriptor.GetName()
-			for _, fieldDescriptor := range messageDescriptor.GetField() {
-				fieldType := fieldDescriptor.GetTypeName()
-				/*Check if the field type is a message (nested message or imported message)
-				Ref:https://cloud.google.com/java/docs/reference/protobuf/latest/com.google.protobuf.DescriptorProtos.FieldDescriptorProto#com_google_protobuf_DescriptorProtos_FieldDescriptorProto_getType__:~:text=The%20type.-,getTypeName(),-public%20String%20getTypeName
-				*/
-				if fieldType != "" && fieldType[0] == '.' {
-					dependentMessage := fieldType[1:]
-					reverseDependencies[dependentMessage] = append(reverseDependencies[dependentMessage], messageName)
-				}
-			}
+			buildReverseDepsFromMessage(pkg, messageDescriptor, reverseDependencies)
 		}
 	}
 	return reverseDependencies
+}
+
+// buildReverseDepsFromMessage recursively registers reverse dependencies for a message
+// and all its nested messages, so that e.g. "test.Outer.Inner" is a valid lookup key.
+func buildReverseDepsFromMessage(prefix string, msg *descriptor.DescriptorProto, reverseDeps map[string][]string) {
+	msgFullName := prefix + "." + msg.GetName()
+	for _, fieldDescriptor := range msg.GetField() {
+		fieldType := fieldDescriptor.GetTypeName()
+		/*Check if the field type is a message (nested message or imported message)
+		Ref:https://cloud.google.com/java/docs/reference/protobuf/latest/com.google.protobuf.DescriptorProtos.FieldDescriptorProto#com_google_protobuf_DescriptorProtos_FieldDescriptorProto_getType__:~:text=The%20type.-,getTypeName(),-public%20String%20getTypeName
+		*/
+		if fieldType != "" && fieldType[0] == '.' {
+			dependentMessage := fieldType[1:]
+			reverseDeps[dependentMessage] = append(reverseDeps[dependentMessage], msgFullName)
+		}
+	}
+	for _, nested := range msg.GetNestedType() {
+		buildReverseDepsFromMessage(msgFullName, nested, reverseDeps)
+	}
 }
 
 func getDependentImpactedSchemas(reverseDependencies map[string][]string, impactedSchema string, depth int32) []string {

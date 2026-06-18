@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package test;
+
+message Outer {
+  string id = 1;
+
+  message Inner {
+    string value = 2;
+  }
+
+  Inner inner = 3;
+}
+

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package test;
+
+// Inner gains a new field `extra_field`
+message Outer {
+  string id = 1;
+
+  message Inner {
+    string value = 2;
+    string extra_field = 3;
+  }
+
+  Inner inner = 3;
+}
+
+// AnotherMessage still uses Outer.Inner — should be impacted by Inner's change
+message AnotherMessage {
+  Outer.Inner inner_ref = 1;
+}
+
